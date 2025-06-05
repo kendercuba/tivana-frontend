@@ -298,7 +298,7 @@ export default function MeCart() {
 
       {!loading && cart.length > 0 && (
         <div className="mt-8 md:mt-0 bg-white p-4 rounded shadow-md max-w-md w-full">
-          <h3 className="text-lg font-semibold mb-4">Resumen total del pedido</h3>
+          <h3 className="text-lg font-semibold mb-4">Resumen total del pedido de prueba</h3>
 
           <div className="flex justify-between mb-2">
             <span>Productos ({cart.reduce((acc, item) => acc + item.quantity, 0)}):</span>
