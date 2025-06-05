@@ -3,7 +3,7 @@ name: 🚀 Deploy to Hostinger
 on:
   push:
     branches:
-      - main  # Se ejecuta cada vez que haces push a la rama "main"
+      - main  # Se ejecuta en cada push a la rama "main"
 
 jobs:
   deploy:
