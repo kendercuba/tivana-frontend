@@ -1,4 +1,4 @@
-import Carousel from "../components/carousel";
+import Carousel from "../components/Carousel";
 import FloatingCards from "../components/FloatingCards";
 
 export default function Home() {
