@@ -14,7 +14,7 @@ export default function ProductDetail() {
 
   // 🔁 Cargar el producto al montar
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/products/${id}`)
+    fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
       .then(res => {
         if (!res.ok) throw new Error('Producto no encontrado');
         return res.json();
@@ -70,8 +70,7 @@ export default function ProductDetail() {
     try {
       console.log("🔐 Token usado:", token);
       console.log("🛒 Enviando al backend:", item);
-      
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/add`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
