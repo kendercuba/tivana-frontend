@@ -1,41 +1,22 @@
+import productosOriginales from '../data/productos_tivana.json';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
+const productos = productosOriginales.map(producto => ({
+  ...producto,
+  product_id: String(producto.product_id)
+}));
+
 const titulos = ['Más vendidos', 'Ofertas del día', 'Seguir comprando', 'Tus pedidos'];
+const bloques = [
+  productos.slice(0, 4),
+  productos.slice(4, 8),
+  productos.slice(8, 12),
+  productos.slice(12, 16)
+];
 
 export default function FloatingCards() {
   const navigate = useNavigate();
-  const [productos, setProductos] = useState([]);
-
-  // 🧠 Cargar productos desde el backend
-  useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/products`);
-        const data = await res.json();
-
-        // Asegurarse de que todos los product_id sean string
-        const productosFormateados = data.map(p => ({
-          ...p,
-          product_id: String(p.product_id),
-        }));
-
-        setProductos(productosFormateados);
-      } catch (err) {
-        console.error('❌ Error al cargar productos:', err);
-      }
-    };
-
-    fetchProductos();
-  }, []);
-
-  // ✅ Agrupar productos en bloques de 4
-  const bloques = [
-    productos.slice(0, 4),
-    productos.slice(4, 8),
-    productos.slice(8, 12),
-    productos.slice(12, 16)
-  ];
 
   const manejarClick = async (product_id) => {
     try {
