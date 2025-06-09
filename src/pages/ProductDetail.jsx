@@ -36,7 +36,8 @@ export default function ProductDetail() {
       size: selectedSize
     };
 
-    if (sizes.length > 0 && !selectedSize) {
+    // ⚠️ Validación más estricta de talla seleccionada
+    if (!selectedSize) {
       setMessage('⚠️ Por favor selecciona una talla');
       return;
     }
