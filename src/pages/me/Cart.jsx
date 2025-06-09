@@ -22,9 +22,10 @@ export default function MeCart() {
             headers: { Authorization: `Bearer ${token}` },
           });
           const data = await res.json();
-          setCart(data);
+          setCart(Array.isArray(data) ? data : []);
         } catch {
           setError("❌ Error al obtener el carrito");
+          setCart([]); // fallback vacío
         } finally {
           setLoading(false);
         }
@@ -62,7 +63,7 @@ export default function MeCart() {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    setCart(data);
+    setCart(Array.isArray(data) ? data : []);
     refreshCart();
   };
 
@@ -198,6 +199,7 @@ export default function MeCart() {
   };
 
   const calcularSubtotal = () => {
+    if (!Array.isArray(cart)) return 0;
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
@@ -301,13 +303,13 @@ export default function MeCart() {
           <h3 className="text-lg font-semibold mb-4">no mas cambios porfavor</h3>
 
           <div className="flex justify-between mb-2">
-            <span>Productos ({cart.reduce((acc, item) => acc + item.quantity, 0)}):</span>
-            <span>${calcularSubtotal().toFixed(2)}</span>
+            <span>Productos ({Array.isArray(cart) ? cart.reduce((acc, item) => acc + item.quantity, 0) : 0}):</span>
+            <span>${isNaN(calcularSubtotal()) ? "0.00" : calcularSubtotal().toFixed(2)}</span>
           </div>
 
           <div className="flex justify-between font-bold text-lg border-t pt-2">
             <span>Subtotal:</span>
-            <span>${calcularSubtotal().toFixed(2)}</span>
+            <span>${isNaN(calcularSubtotal()) ? "0.00" : calcularSubtotal().toFixed(2)}</span>
           </div>
 
           <p className="text-sm text-gray-500 mt-2">
