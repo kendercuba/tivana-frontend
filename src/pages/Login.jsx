@@ -30,7 +30,16 @@ function Login() {
         setMensaje(`✅ Bienvenido ${data.user.nombre}`);
 
         // 🛒 MERGE del carrito
-        const guestCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+        const rawCart = localStorage.getItem('guest_cart');
+        let guestCart = [];
+
+        try {
+          const parsed = JSON.parse(rawCart);
+          if (Array.isArray(parsed)) guestCart = parsed;
+        } catch (e) {
+          console.warn('⚠️ guest_cart no es un JSON válido:', e);
+        }
+
         if (guestCart.length > 0) {
           try {
             await fetch(`${import.meta.env.VITE_API_URL}/cart/merge`, {
