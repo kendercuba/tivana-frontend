@@ -2,6 +2,8 @@ import { useEffect, useState, useContext } from "react";
 import { UserContext } from "../../context/UserContext";
 
 export default function Profile() {
+  const [nombreInput, setNombreInput] = useState(user?.nombre || "");
+  const [apellidoInput, setApellidoInput] = useState(user?.apellido || "");
   const { user } = useContext(UserContext);
   const [addresses, setAddresses] = useState([]);
   const [payments, setPayments] = useState([]);
@@ -102,6 +104,55 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-8">
       <h1 className="text-2xl font-bold mb-4">Perfil de usuario</h1>
+
+      {/* 👤 INFORMACIÓN DE USUARIO */}
+<div>
+  <h2 className="text-xl font-semibold mb-2">Datos del usuario</h2>
+  <form
+    onSubmit={async (e) => {
+      e.preventDefault();
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/me/update`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ nombre: nombreInput, apellido: apellidoInput }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("✅ Datos actualizados correctamente");
+      } else {
+        alert(`❌ ${data.message}`);
+      }
+    }}
+    className="grid gap-2 md:grid-cols-2 mb-6"
+  >
+    <input
+      required
+      placeholder="Nombre"
+      value={nombreInput}
+      onChange={(e) => setNombreInput(e.target.value)}
+      className="border p-2 rounded"
+    />
+    <input
+      required
+      placeholder="Apellido"
+      value={apellidoInput}
+      onChange={(e) => setApellidoInput(e.target.value)}
+      className="border p-2 rounded"
+    />
+    <input
+      value={user?.email || ""}
+      readOnly
+      className="md:col-span-2 border p-2 rounded bg-gray-100 text-gray-500"
+    />
+    <button className="md:col-span-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition">
+      Guardar cambios
+    </button>
+  </form>
+</div>
+
 
       {/* 🏠 DIRECCIONES */}
       <div>
