@@ -5,7 +5,7 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/admin/orders`)
+    fetch(`${import.meta.env.VITE_API_URL}/api/admin/orders`)
       .then(res => res.json())
       .then(data => setOrders(data))
       .catch(err => console.error("Error fetching orders:", err));
