@@ -16,7 +16,7 @@ export default function Products() {
 
   const fetchProductos = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/products`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/products`);
       const data = await res.json();
       setProductos(data);
     } catch (error) {
@@ -27,13 +27,13 @@ export default function Products() {
   };
 
   const fetchCategorias = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/categorias`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/categorias`);
     const data = await res.json();
     setCategorias(data);
   };
 
   const fetchSubcategorias = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/subcategorias`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/subcategorias`);
     const data = await res.json();
     setSubcategorias(data);
   };
@@ -84,7 +84,6 @@ export default function Products() {
                 </tr>
               ))}
             </tbody>
-
         </table>
       )}
     </AdminLayout>
