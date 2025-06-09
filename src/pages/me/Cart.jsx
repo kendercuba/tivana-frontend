@@ -18,7 +18,7 @@ export default function MeCart() {
 
       if (token) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/cart`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const data = await res.json();
@@ -36,7 +36,7 @@ export default function MeCart() {
         const enrichedCart = await Promise.all(
           parsed.map(async (item) => {
             try {
-              const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`);
+              const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products/${item.id}`);
               const data = await res.json();
               const sizes = Array.isArray(data.sizes)
                 ? data.sizes
@@ -59,7 +59,7 @@ export default function MeCart() {
 
   const actualizarCarrito = async () => {
     const token = localStorage.getItem("token");
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/cart`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -78,7 +78,7 @@ export default function MeCart() {
 
     const token = localStorage.getItem("token");
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/cart/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +103,7 @@ export default function MeCart() {
 
     const token = localStorage.getItem("token");
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/cart/update`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +119,7 @@ export default function MeCart() {
 
   const eliminarProducto = async (productId, size) => {
     const token = localStorage.getItem("token");
-    await fetch(`${import.meta.env.VITE_API_URL}/cart/delete/${productId}/${size}`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/api/cart/delete/${productId}/${size}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -163,7 +163,7 @@ export default function MeCart() {
     if (user) {
       const token = localStorage.getItem("token");
 
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update-size`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/cart/update-size`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
