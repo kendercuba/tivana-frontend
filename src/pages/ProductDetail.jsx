@@ -68,6 +68,9 @@ export default function ProductDetail() {
 
     // 🛒 Usuario logueado
     try {
+      console.log("🔐 Token usado:", token);
+      console.log("🛒 Enviando al backend:", item);
+      
       const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
         method: 'POST',
         headers: {
