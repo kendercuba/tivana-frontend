@@ -14,17 +14,29 @@ export default function ProductDetail() {
 
   // 🔁 Cargar el producto al montar
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
-      .then(res => {
+    const fetchRealProduct = async () => {
+      try {
+        // Paso 1: Resolver el ID real desde el product_id externo
+        const resolveRes = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${id}`);
+        const resolveData = await resolveRes.json();
+        if (!resolveData.id) throw new Error('❌ No se pudo resolver el ID');
+
+        // Paso 2: Usar ese ID real para buscar el producto
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${resolveData.id}`);
         if (!res.ok) throw new Error('Producto no encontrado');
-        return res.json();
-      })
-      .then(data => {
+        const data = await res.json();
+
         setProduct(data);
         setMainImage(data.image);
-      })
-      .catch(err => console.error('Error al cargar producto:', err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error('❌ Error al cargar producto:', err);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRealProduct();
   }, [id]);
 
   // 🧠 Agregar al carrito
@@ -70,7 +82,7 @@ export default function ProductDetail() {
     try {
       console.log("🔐 Token usado:", token);
       console.log("🛒 Enviando al backend:", item);
-      
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
         method: 'POST',
         headers: {
