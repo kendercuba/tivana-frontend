@@ -17,7 +17,7 @@ function Login() {
     e.preventDefault();
     setMensaje('');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -42,7 +42,7 @@ function Login() {
 
         if (guestCart.length > 0) {
           try {
-            await fetch(`${import.meta.env.VITE_API_URL}api/cart/merge`, {
+            await fetch(`${import.meta.env.VITE_API_URL}/cart/merge`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
