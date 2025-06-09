@@ -2,12 +2,14 @@ import { useEffect, useState, useContext } from "react";
 import { UserContext } from "../../context/UserContext";
 
 export default function Profile() {
-  const [nombreInput, setNombreInput] = useState(user?.nombre || "");
-  const [apellidoInput, setApellidoInput] = useState(user?.apellido || "");
   const { user } = useContext(UserContext);
+
+  const [nombreInput, setNombreInput] = useState("");
+  const [apellidoInput, setApellidoInput] = useState("");
   const [addresses, setAddresses] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [newAddress, setNewAddress] = useState({
     full_name: "",
     address_line: "",
@@ -16,6 +18,7 @@ export default function Profile() {
     postal_code: "",
     country: "",
   });
+
   const [newPayment, setNewPayment] = useState({
     cardholder_name: "",
     card_last4: "",
@@ -26,6 +29,15 @@ export default function Profile() {
 
   const token = localStorage.getItem("token");
 
+  // 🧠 Actualizar campos cuando el usuario cambie
+  useEffect(() => {
+    if (user) {
+      setNombreInput(user.nombre || "");
+      setApellidoInput(user.apellido || "");
+    }
+  }, [user]);
+
+  // 📦 Cargar direcciones y pagos
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -72,8 +84,7 @@ export default function Profile() {
         postal_code: "",
         country: "",
       });
-      const updated = await res.json();
-      window.location.reload(); // Rápido, puedes mejorar esto luego
+      window.location.reload();
     }
   };
 
@@ -99,6 +110,24 @@ export default function Profile() {
     }
   };
 
+  const handleUserUpdate = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/me/update`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ nombre: nombreInput, apellido: apellidoInput }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert("✅ Datos actualizados correctamente");
+    } else {
+      alert(`❌ ${data.message}`);
+    }
+  };
+
   if (loading) return <p className="p-4">Cargando perfil...</p>;
 
   return (
@@ -106,53 +135,33 @@ export default function Profile() {
       <h1 className="text-2xl font-bold mb-4">Perfil de usuario</h1>
 
       {/* 👤 INFORMACIÓN DE USUARIO */}
-<div>
-  <h2 className="text-xl font-semibold mb-2">Datos del usuario</h2>
-  <form
-    onSubmit={async (e) => {
-      e.preventDefault();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/me/update`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nombre: nombreInput, apellido: apellidoInput }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert("✅ Datos actualizados correctamente");
-      } else {
-        alert(`❌ ${data.message}`);
-      }
-    }}
-    className="grid gap-2 md:grid-cols-2 mb-6"
-  >
-    <input
-      required
-      placeholder="Nombre"
-      value={nombreInput}
-      onChange={(e) => setNombreInput(e.target.value)}
-      className="border p-2 rounded"
-    />
-    <input
-      required
-      placeholder="Apellido"
-      value={apellidoInput}
-      onChange={(e) => setApellidoInput(e.target.value)}
-      className="border p-2 rounded"
-    />
-    <input
-      value={user?.email || ""}
-      readOnly
-      className="md:col-span-2 border p-2 rounded bg-gray-100 text-gray-500"
-    />
-    <button className="md:col-span-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition">
-      Guardar cambios
-    </button>
-  </form>
-</div>
-
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Datos del usuario</h2>
+        <form onSubmit={handleUserUpdate} className="grid gap-2 md:grid-cols-2 mb-6">
+          <input
+            required
+            placeholder="Nombre"
+            value={nombreInput}
+            onChange={(e) => setNombreInput(e.target.value)}
+            className="border p-2 rounded"
+          />
+          <input
+            required
+            placeholder="Apellido"
+            value={apellidoInput}
+            onChange={(e) => setApellidoInput(e.target.value)}
+            className="border p-2 rounded"
+          />
+          <input
+            value={user?.email || ""}
+            readOnly
+            className="md:col-span-2 border p-2 rounded bg-gray-100 text-gray-500"
+          />
+          <button className="md:col-span-2 bg-black text-white py-2 px-4 rounded hover:bg-gray-800 transition">
+            Guardar cambios
+          </button>
+        </form>
+      </div>
 
       {/* 🏠 DIRECCIONES */}
       <div>
