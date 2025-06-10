@@ -1,4 +1,4 @@
-// src/pages/me/Resumen.jsx
+// src/pages/account/Resumen.jsx
 export default function MeResumen() {
   return (
     <div>

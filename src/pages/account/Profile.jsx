@@ -10,7 +10,7 @@ export default function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/me/update`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/account/update`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",

@@ -1,4 +1,4 @@
-// src/pages/me/Orders.jsx
+// src/pages/account/Orders.jsx
 import { useEffect, useState, useContext } from "react";
 import { UserContext } from "../../context/UserContext";
 

@@ -12,7 +12,7 @@ export function UserProvider({ children }) {
     const token = localStorage.getItem('token');
 
     if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/me`, {
+      fetch(`${import.meta.env.VITE_API_URL}/account`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => res.json())

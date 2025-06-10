@@ -5,7 +5,7 @@ export default function Messages() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/me/messages`, {
+    fetch(`${import.meta.env.VITE_API_URL}/account/messages`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

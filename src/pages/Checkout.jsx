@@ -74,7 +74,7 @@ export default function Checkout() {
         localStorage.removeItem("guest_cart");
         refreshCart();
         setMessage("✅ ¡Gracias por tu compra!");
-        setTimeout(() => navigate("/me/orders"), 2000);
+        setTimeout(() => navigate("/account/orders"), 2000);
       } else {
         setMessage("❌ Hubo un problema al procesar tu orden.");
       }

@@ -10,20 +10,17 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminOrders from './pages/admin/Orders';
 import AdminSearchLogs from './pages/admin/SearchLogs';
 import AdminProducts from './pages/admin/Products';
-import MeLayout from './pages/me/MeLayout';
-import MeSummary from './pages/me/Summary';
-import MeCart from './pages/me/Cart';
-import MeOrders from './pages/me/Orders';
-import MeProfile from './pages/me/Profile';
+import AccountLayout from './pages/account/AccountLayout';
+import AccountSummary from './pages/account/Summary';
+import AccountOrders from './pages/account/Orders';
+import AccountProfile from './pages/account/Profile';
 import Checkout from './pages/Checkout';
+import Cart from './pages/Cart'; // ✅ nuevo import
 
 function App() {
   return (
     <>
       <Header />
-
-      {/* ✅ Ejemplo de prueba de Tailwind */}
-      {/* <div className="bg-red-500 text-white p-4 text-center">Tailwind está funcionando</div> */}
 
       <main className="pt-0">
         <Routes>
@@ -33,13 +30,13 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/cart" element={<Cart />} /> {/* ✅ nueva ruta */}
 
           {/* Panel del usuario */}
-          <Route path="/me" element={<MeLayout />}>
-            <Route index element={<MeSummary />} />
-            <Route path="cart" element={<MeCart />} />
-            <Route path="orders" element={<MeOrders />} />
-            <Route path="profile" element={<MeProfile />} />
+          <Route path="/account" element={<AccountLayout />}>
+            <Route index element={<AccountSummary />} />
+            <Route path="orders" element={<AccountOrders />} />
+            <Route path="profile" element={<AccountProfile />} />
           </Route>
 
           {/* Panel admin */}

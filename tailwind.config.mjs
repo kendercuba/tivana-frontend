@@ -4,7 +4,11 @@ export default {
     "./src/**/*.{js,jsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        walmart: "#f6f7f8", // <- Color de fondo tipo Walmart
+      },
+    },
   },
   plugins: [],
-}
+};
