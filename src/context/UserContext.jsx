@@ -25,7 +25,7 @@ export function UserProvider({ children }) {
       setLoading(false);
     }
 
-    refreshCart(); // Cargar carrito automáticamente
+    refreshCart(); // Cargar desde el carrito automaticamente
   }, []);
 
   // 🔄 Refrescar el carrito
