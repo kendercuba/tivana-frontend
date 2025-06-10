@@ -29,7 +29,7 @@ function Login() {
       const data = await res.json();
 
       if (res.ok && data.token) {
-        login(data.user, data.token); // ✅ Actualiza el contexto global
+        login(data.user, data.token); // ✅ Actualiza el contexto globalmente
         setMensaje(`✅ Bienvenido ${data.user.nombre}`);
 
         // 🛒 MERGE del carrito
