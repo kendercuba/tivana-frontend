@@ -61,7 +61,6 @@ function Login() {
 
         setTimeout(() => {
           navigate('/');
-          window.location.reload(); // Puede mantenerse si aún usas redireccionamiento forzado
         }, 1000);
       } else {
         setMensaje(`❌ ${data.message}`);
