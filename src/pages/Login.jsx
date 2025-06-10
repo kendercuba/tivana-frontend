@@ -24,12 +24,11 @@ function Login() {
         body: JSON.stringify(form),
       });
 
+      const data = await res.json();
       console.log("🔐 Login response:", data); // <-- para debug
 
-      const data = await res.json();
-
       if (res.ok && data.token) {
-        login(data.user, data.token); // ✅ Actualiza contexto globalmente
+        login(data.user, data.token); // ✅ Actualiza el contexto global
         setMensaje(`✅ Bienvenido ${data.user.nombre}`);
 
         // 🛒 MERGE del carrito
