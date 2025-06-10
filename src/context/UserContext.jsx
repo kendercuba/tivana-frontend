@@ -7,7 +7,7 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
 
-  // Cargar datos del usuario y del carrito al iniciar
+  // Cargar datos del usuario y carrito al iniciar
   useEffect(() => {
     const token = localStorage.getItem('token');
 
@@ -25,7 +25,7 @@ export function UserProvider({ children }) {
       setLoading(false);
     }
 
-    refreshCart(); // Cargar el carrito automáticamente
+    refreshCart(); // Cargar carrito automáticamente
   }, []);
 
   // 🔄 Refrescar el carrito
