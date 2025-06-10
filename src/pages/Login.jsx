@@ -18,10 +18,13 @@ function Login() {
     setMensaje('');
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
+        
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+
+      console.log("🔐 Login response:", data); // <-- para debug
 
       const data = await res.json();
 
