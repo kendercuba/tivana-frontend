@@ -14,19 +14,48 @@ export default function Cart() {
     const fetchCart = async () => {
       const token = localStorage.getItem("token");
       if (token) {
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const data = await res.json();
-          setCart(Array.isArray(data) ? data : []);
-        } catch {
-          setError("❌ Error al obtener el carrito");
-          setCart([]);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    const enrichedCart = await Promise.all(
+  (Array.isArray(data) ? data : []).map(async (item) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`);
+      const data = await res.json();
+      return {
+        ...item,
+        title: data.title,
+        image: data.image,
+        sizes:
+  Array.isArray(data.sizes)
+    ? data.sizes
+    : typeof data.sizes === 'string'
+      ? JSON.parse(data.sizes || '[]')
+      : [],
+
+        price: data.price,
+        id: data.id, // id interno real
+      };
+    } catch {
+      return item;
+    }
+  })
+);
+setCart(enrichedCart);
+
+    console.log("🧪 Carrito con realId:", enrichedCart);
+  } catch {
+    setError("❌ Error al obtener el carrito");
+    setCart([]);
+  } finally {
+    setLoading(false);
+  }
+}
+     
+      else {
         const localCart = localStorage.getItem("guest_cart");
         const parsed = localCart ? JSON.parse(localCart) : [];
         const enrichedCart = await Promise.all(
@@ -51,14 +80,44 @@ export default function Cart() {
   }, []);
 
   const actualizarCarrito = async () => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
+  try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
-    setCart(Array.isArray(data) ? data : []);
+
+    const enrichedCart = await Promise.all(
+      (Array.isArray(data) ? data : []).map(async (item) => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`);
+          const data = await res.json();
+          return {
+            ...item,
+            title: data.title,
+            image: data.image,
+            sizes:
+              Array.isArray(data.sizes)
+                ? data.sizes
+                : typeof data.sizes === 'string'
+                ? JSON.parse(data.sizes || '[]')
+                : [],
+            price: data.price,
+            id: data.id,
+          };
+        } catch {
+          return item;
+        }
+      })
+    );
+
+    setCart(enrichedCart);
     refreshCart();
-  };
+  } catch {
+    setCart([]);
+    console.error("❌ Error actualizando carrito");
+  }
+};
 
   const aumentarCantidad = async (productId, size) => {
     setCart((prev) =>
@@ -167,20 +226,18 @@ export default function Cart() {
       });
       actualizarCarrito();
     } else {
-      const localCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
-      const nuevoCarrito = localCart.filter(
-        (p) => !(p.id === item.id && p.size === item.size)
-      );
-      const existente = nuevoCarrito.find(
-        (p) => p.id === item.id && p.size === newSize
-      );
-      if (existente) {
-        existente.quantity += item.quantity;
-      } else {
-        nuevoCarrito.push({ ...item, size: newSize });
-      }
-      guardarCarritoLocal(nuevoCarrito);
+  const localCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
+
+  const nuevoCarrito = localCart.map((p) => {
+    if (p.id === item.id && p.size === item.size) {
+      return { ...p, size: newSize, sizes: p.sizes || item.sizes };
     }
+    return p;
+  });
+
+  guardarCarritoLocal(nuevoCarrito);
+}
+
   };
 
   const calcularSubtotal = () => {
@@ -201,80 +258,84 @@ export default function Cart() {
             <p className="text-gray-500">Tu carrito está vacío.</p>
           ) : (
             <ul className="space-y-6">
-              {cart.map((item) => (
-                <li
-                  key={`${item.id}-${item.size}`}
-                  className="flex items-start gap-4 border-b pb-4"
-                >
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-24 h-24 object-cover rounded cursor-pointer"
-                    onClick={() => (window.location.href = `/product/${item.id}`)}
-                  />
-                  <div className="flex-1">
-                    <p
-                      className="font-semibold text-lg cursor-pointer hover:underline"
-                      onClick={() => (window.location.href = `/product/${item.id}`)}
-                    >
-                      {item.title}
-                    </p>
-                    <p className="text-gray-600 font-medium">${item.price}</p>
-                    {item.size && item.sizes ? (
-                      <label className="block text-sm mt-2">
-                        Talla:
-                        <select
-                          value={item.size}
-                          onChange={(e) => cambiarTalla(item, e.target.value)}
-                          className="ml-2 border rounded px-2 py-1"
-                        >
-                          {item.sizes.map((sizeOption) => (
-                            <option key={sizeOption} value={sizeOption}>
-                              {sizeOption}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : item.size ? (
-                      <p className="text-sm text-gray-500">Talla: {item.size}</p>
-                    ) : null}
-                    <div className="flex items-center gap-2 mt-3">
-                      <button
-                        onClick={() =>
-                          user
-                            ? disminuirCantidad(item.product_id, item.size)
-                            : disminuirCantidadInvitado(item.id, item.size)
-                        }
-                        className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                      >
-                        -
-                      </button>
-                      <span className="px-2 font-semibold">{item.quantity}</span>
-                      <button
-                        onClick={() =>
-                          user
-                            ? aumentarCantidad(item.product_id, item.size)
-                            : aumentarCantidadInvitado(item.id, item.size)
-                        }
-                        className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() =>
-                          user
-                            ? eliminarProducto(item.product_id, item.size)
-                            : eliminarProductoInvitado(item.id, item.size)
-                        }
-                        className="ml-4 text-red-500 text-sm hover:underline"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
+  {cart.map((item, index) => (
+    <li
+      key={index} // 🔑 usamos el índice como clave para mantener orden visual estable
+      className="flex items-start gap-4 border-b pb-4"
+    >
+      <img
+        src={item.image}
+        alt={item.title}
+        className="w-24 h-24 object-cover rounded cursor-pointer"
+        onClick={() => navigate(`/product/${item.realId || item.id || item.product_id}`)}
+      />
+      <div className="flex-1">
+        <p
+          className="font-semibold text-lg cursor-pointer hover:underline"
+          onClick={() => navigate(`/product/${item.realId || item.id || item.product_id}`)}
+        >
+          {item.title}
+        </p>
+        <p className="text-gray-600 font-medium">${item.price}</p>
+
+        {item.size && Array.isArray(item.sizes) ? (
+        <label className="block text-sm mt-2">
+          Talla:
+          <select
+            value={item.size}
+            onChange={(e) => cambiarTalla(item, e.target.value)}
+            className="ml-2 border rounded px-2 py-1"
+          >
+            {item.sizes.map((sizeOption) => (
+              <option key={sizeOption} value={sizeOption}>
+                {sizeOption}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : item.size ? (
+        <p className="text-sm text-gray-500">Talla: {item.size}</p>
+      ) : null}
+
+
+        <div className="flex items-center gap-2 mt-3">
+          <button
+            onClick={() =>
+              user
+                ? disminuirCantidad(item.product_id, item.size)
+                : disminuirCantidadInvitado(item.id, item.size)
+            }
+            className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            -
+          </button>
+          <span className="px-2 font-semibold">{item.quantity}</span>
+          <button
+            onClick={() =>
+              user
+                ? aumentarCantidad(item.product_id, item.size)
+                : aumentarCantidadInvitado(item.id, item.size)
+            }
+            className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            +
+          </button>
+          <button
+            onClick={() =>
+              user
+                ? eliminarProducto(item.product_id, item.size)
+                : eliminarProductoInvitado(item.id, item.size)
+            }
+            className="ml-4 text-red-500 text-sm hover:underline"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </li>
+  ))}
+</ul>
+
           )}
         </div>
 

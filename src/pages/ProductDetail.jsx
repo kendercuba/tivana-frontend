@@ -15,16 +15,23 @@ export default function ProductDetail() {
   // 🔁 Cargar el producto al montar
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
-      .then(res => {
-        if (!res.ok) throw new Error('Producto no encontrado');
-        return res.json();
-      })
-      .then(data => {
-        setProduct(data);
-        setMainImage(data.image);
-      })
-      .catch(err => console.error('Error al cargar producto:', err))
-      .finally(() => setLoading(false));
+  .then(async res => {
+    if (!res.ok) throw new Error('❌ Producto no encontrado o error del servidor');
+    const text = await res.text();
+    try {
+      const json = JSON.parse(text);
+      setProduct(json);
+      setMainImage(json.image);
+    } catch (e) {
+      throw new Error('❌ La respuesta del backend no es un JSON válido');
+    }
+  })
+  .catch(err => {
+    console.error('❌ Error al cargar producto:', err.message);
+    setProduct(null);
+  })
+  .finally(() => setLoading(false));
+
   }, [id]);
 
   // 🧠 Agregar al carrito
