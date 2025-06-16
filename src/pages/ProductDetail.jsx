@@ -49,7 +49,7 @@ export default function ProductDetail() {
       return;
     }
 
-    // 🛒 Invitado
+    // 🛒 Modo Invitado
     if (!token) {
       const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
       const existing = cart.find(p => p.id === item.product_id && p.size === item.size);
