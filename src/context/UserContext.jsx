@@ -12,7 +12,7 @@ export function UserProvider({ children }) {
   // ✅ Al iniciar, intenta validar el token si existe
   useEffect(() => {
     if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/api/account`, {
+      fetch(`${import.meta.env.VITE_API_URL}/account`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => {
