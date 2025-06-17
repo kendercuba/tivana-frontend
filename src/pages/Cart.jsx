@@ -136,7 +136,7 @@ useEffect(() => {
   }
 }, [cart]);
 
-// ✅ Detectar productos nuevos y agregarlos seleccionados por defecto
+// ✅ Detectar productos nuevos y agregarlos seleccionados por defecto (sin interferir con clic manual)
 useEffect(() => {
   if (!initialized.current) return;
 
@@ -144,16 +144,25 @@ useEffect(() => {
     .filter(item => item && item.size)
     .map(item => `${item.id || item.product_id}-${item.size}`);
 
-  const newKeys = keysInCart.filter(k => !selectedItems.includes(k));
+  // Solo agregar claves nuevas, no reemplazar
+  const savedSelection = localStorage.getItem("selected_items");
+  let currentSelected = [];
+
+  try {
+    currentSelected = savedSelection ? JSON.parse(savedSelection) : [];
+  } catch {
+    currentSelected = [];
+  }
+
+  const newKeys = keysInCart.filter(k => !currentSelected.includes(k));
 
   if (newKeys.length > 0) {
-    const updatedSelection = [...selectedItems, ...newKeys];
-    if (JSON.stringify(updatedSelection) !== JSON.stringify(selectedItems)) {
-      setSelectedItems(updatedSelection);
-      localStorage.setItem("selected_items", JSON.stringify(updatedSelection));
-    }
+    const updated = [...currentSelected, ...newKeys];
+    setSelectedItems(updated);
+    localStorage.setItem("selected_items", JSON.stringify(updated));
   }
-}, [cart, selectedItems]);
+}, [cart]); // 👈 importante: solo escucha cart
+
 
 
 // ✅ seccion para Guardar para mas tarde
