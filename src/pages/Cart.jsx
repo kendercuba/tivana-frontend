@@ -15,17 +15,6 @@ export default function Cart() {
   const [error, setError] = useState("");
   const initialized = useRef(false);
 
-// 🔁 Guardar selección cada vez que cambie
-useEffect(() => {
-  if (initialized.current) {
-    // ✅ Solo guardar si el carrito ya fue cargado y hay ítems válidos
-    const keys = cart.map(item => `${item.id || item.product_id}-${item.size}`);
-    const validSelected = selectedItems.filter(k => keys.includes(k));
-
-    localStorage.setItem("selected_items", JSON.stringify(validSelected));
-  }
-}, [selectedItems, cart]);
-
 
   // 📦 useEffect para cargar carrito (logueado o invitado)
   useEffect(() => {
@@ -89,14 +78,6 @@ useEffect(() => {
   );
   setCart(enrichedCart);
 
-  // ✅ Seleccionar todos los productos al cargar (invitado)
-  setSelectedItems((prevSelected) => {
-    if (prevSelected.length > 0) return prevSelected;
-    return enrichedCart
-      .filter(item => item.size)
-      .map(item => `${item.id || item.product_id}-${item.size}`);
-  });
-
   setLoading(false);
 }
 
@@ -108,9 +89,10 @@ useEffect(() => {
 // ✅ useEffect separado para mantener las selecciones de productos al recargar
 useEffect(() => {
   if (cart.length > 0 && !initialized.current) {
+    console.log("📌 Inicializando selección desde localStorage...");
+
     const savedSelection = localStorage.getItem("selected_items");
 
-    console.log("📌 Inicializando selección tras cargar carrito");
     const keysEnriched = cart
       .filter(item => item && item.size)
       .map(item => `${item.id || item.product_id}-${item.size}`);
@@ -119,16 +101,18 @@ useEffect(() => {
       try {
         const parsed = JSON.parse(savedSelection);
 
-        // ✅ Importante: respetar arreglo vacío también
+        // 🔒 Respetar aunque sea []
         const validKeys = parsed.filter(k => keysEnriched.includes(k));
         setSelectedItems(validKeys);
+
+        console.log("✅ Se cargó selección guardada:", validKeys);
       } catch (e) {
-        console.warn("❌ Error al parsear selección guardada:", e);
+        console.warn("❌ Error al parsear selección:", e);
         setSelectedItems([]);
         localStorage.setItem("selected_items", JSON.stringify([]));
       }
     } else {
-      // ✅ Solo si es la PRIMERA VEZ (no hay nada guardado aún)
+      // 🟡 Solo si es la primera vez sin ningún valor guardado
       setSelectedItems(keysEnriched);
       localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
     }
@@ -136,35 +120,6 @@ useEffect(() => {
     initialized.current = true;
   }
 }, [cart]);
-
-
-// ✅ Detectar productos nuevos y agregarlos seleccionados por defecto (sin interferir con clic manual)
-useEffect(() => {
-  if (!initialized.current) return;
-
-  const keysInCart = cart
-    .filter(item => item && item.size)
-    .map(item => `${item.id || item.product_id}-${item.size}`);
-
-  // Solo agregar claves nuevas, no reemplazar
-  const savedSelection = localStorage.getItem("selected_items");
-  let currentSelected = [];
-
-  try {
-    currentSelected = savedSelection ? JSON.parse(savedSelection) : [];
-  } catch {
-    currentSelected = [];
-  }
-
-  const newKeys = keysInCart.filter(k => !currentSelected.includes(k));
-
-  if (newKeys.length > 0) {
-    const updated = [...currentSelected, ...newKeys];
-    setSelectedItems(updated);
-    localStorage.setItem("selected_items", JSON.stringify(updated));
-  }
-}, [cart]); // 👈 importante: solo escucha cart
-
 
 
 // ✅ seccion para Guardar para mas tarde
@@ -222,12 +177,6 @@ useEffect(() => {
       );
 
       setCart(enrichedCart);
-
-      // ✅ Seleccionar todos los productos al cargar
-setSelectedItems((prevSelected) => {
-  if (prevSelected.length > 0) return prevSelected;
-  return enrichedCart.map(item => `${item.id || item.product_id}-${item.size}`);
-});
 
       refreshCart();
     } catch {

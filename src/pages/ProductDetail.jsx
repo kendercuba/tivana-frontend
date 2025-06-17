@@ -35,69 +35,76 @@ export default function ProductDetail() {
   }, [id]);
 
   // 🧠 Agregar al carrito
-  const agregarAlCarrito = async () => {
-    const token = localStorage.getItem('token');
-    const item = {
-      product_id: product.id,
-      quantity: quantity, // ✅ Usar cantidad seleccionada
-      size: selectedSize
-    };
-
-    // ⚠️ Validación más estricta de talla seleccionada
-    if (!selectedSize) {
-      setMessage('⚠️ Por favor selecciona una talla');
-      return;
-    }
-
-    // 🛒 Modo Invitado
-    if (!token) {
-      const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-      const existing = cart.find(p => p.id === item.product_id && p.size === item.size);
-
-      if (existing) {
-        existing.quantity += item.quantity;
-      } else {
-        cart.push({
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
-          quantity: item.quantity,
-          size: selectedSize
-        });
-      }
-
-      localStorage.setItem('guest_cart', JSON.stringify(cart));
-      await refreshCart();
-      setMessage('✅ Producto agregado al carrito como invitado');
-      return;
-    }
-
-    // 🛒 Usuario logueado
-    try {
-      console.log("🔐 Token usado:", token);
-      console.log("🛒 Enviando al backend:", item);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(item)
-      });
-
-      const data = await res.json();
-
-      if (data.message) {
-        await refreshCart();
-        setMessage('✅ Producto agregado al carrito');
-      } else {
-        setMessage('❌ No se pudo agregar al carrito');
-      }
-    } catch {
-      setMessage('❌ Error al conectar con el servidor');
-    }
+const agregarAlCarrito = async () => {
+  const token = localStorage.getItem('token');
+  const item = {
+    product_id: product.id,
+    quantity: quantity, // ✅ Usar cantidad seleccionada
+    size: selectedSize
   };
+
+  // ⚠️ Validación más estricta de talla seleccionada
+  if (!selectedSize) {
+    setMessage('⚠️ Por favor selecciona una talla');
+    return;
+  }
+
+  // ✅ Bloque para enviar los productos con el checkbox marcado al carrito
+  const newKey = `${product.id}-${selectedSize}`;
+  const selected = JSON.parse(localStorage.getItem('selected_items') || '[]');
+  if (!selected.includes(newKey)) {
+    localStorage.setItem('selected_items', JSON.stringify([...selected, newKey]));
+  }
+
+  // 🛒 Modo Invitado
+  if (!token) {
+    const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+    const existing = cart.find(p => p.id === item.product_id && p.size === item.size);
+
+    if (existing) {
+      existing.quantity += item.quantity;
+    } else {
+      cart.push({
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
+        quantity: item.quantity,
+        size: selectedSize
+      });
+    }
+
+    localStorage.setItem('guest_cart', JSON.stringify(cart));
+    await refreshCart();
+    setMessage('✅ Producto agregado al carrito como invitado');
+    return;
+  }
+
+  // 🛒 Usuario logueado
+  try {
+    console.log("🔐 Token usado:", token);
+    console.log("🛒 Enviando al backend:", item);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(item)
+    });
+
+    const data = await res.json();
+
+    if (data.message) {
+      await refreshCart();
+      setMessage('✅ Producto agregado al carrito');
+    } else {
+      setMessage('❌ No se pudo agregar al carrito');
+    }
+  } catch {
+    setMessage('❌ Error al conectar con el servidor');
+  }
+};
 
   if (loading) return <div className="p-4">Cargando producto...</div>;
   if (!product) return <div className="p-4 text-red-600">Producto no encontrado</div>;
@@ -105,6 +112,10 @@ export default function ProductDetail() {
   // 📦 Parsear imágenes y tallas
   const images = Array.isArray(product.images) ? product.images : JSON.parse(product.images || '[]');
   const sizes = Array.isArray(product.sizes) ? product.sizes : JSON.parse(product.sizes || '[]');
+
+
+
+
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">
