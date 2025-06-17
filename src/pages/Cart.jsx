@@ -2,6 +2,7 @@
 import { useEffect, useState, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 
 export default function Cart() {
   const { user, refreshCart } = useContext(UserContext);
@@ -12,6 +13,19 @@ export default function Cart() {
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const initialized = useRef(false);
+
+// 🔁 Guardar selección cada vez que cambie
+useEffect(() => {
+  if (initialized.current) {
+    // ✅ Solo guardar si el carrito ya fue cargado y hay ítems válidos
+    const keys = cart.map(item => `${item.id || item.product_id}-${item.size}`);
+    const validSelected = selectedItems.filter(k => keys.includes(k));
+
+    localStorage.setItem("selected_items", JSON.stringify(validSelected));
+  }
+}, [selectedItems, cart]);
+
 
   // 📦 useEffect para cargar carrito (logueado o invitado)
   useEffect(() => {
@@ -49,43 +63,78 @@ export default function Cart() {
 
           setCart(enrichedCart);
 
-          // ✅ Seleccionar todos los productos al cargar
-const allKeys = enrichedCart.map(item => `${item.id || item.product_id}-${item.size}`);
-setSelectedItems(allKeys);
-
-        } catch {
-          setError("❌ Error al obtener el carrito");
-          setCart([]);
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        const localCart = localStorage.getItem("guest_cart");
-        const parsed = localCart ? JSON.parse(localCart) : [];
-        const enrichedCart = await Promise.all(
-          parsed.map(async (item) => {
-            try {
-              const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`);
-              const data = await res.json();
-              const sizes = Array.isArray(data.sizes)
-                ? data.sizes
-                : JSON.parse(data.sizes || "[]");
-              return { ...item, sizes };
-            } catch {
-              return item;
-            }
-          })
-        );
-        setCart(enrichedCart);
-        // ✅ Seleccionar todos los productos al cargar
-const allKeys = enrichedCart.map(item => `${item.id || item.product_id}-${item.size}`);
-setSelectedItems(allKeys);
-        setLoading(false);
+} catch {
+  setError("❌ Error al obtener el carrito");
+  setCart([]);
+} finally {
+  setLoading(false);
+}
+} else {
+  // 🧑‍💻 Usuario invitado
+  const localCart = localStorage.getItem("guest_cart");
+  const parsed = localCart ? JSON.parse(localCart) : [];
+  const enrichedCart = await Promise.all(
+    parsed.map(async (item) => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`);
+        const data = await res.json();
+        const sizes = Array.isArray(data.sizes)
+          ? data.sizes
+          : JSON.parse(data.sizes || "[]");
+        return { ...item, sizes };
+      } catch {
+        return item;
       }
+    })
+  );
+  setCart(enrichedCart);
+
+  // ✅ Seleccionar todos los productos al cargar (invitado)
+  setSelectedItems((prevSelected) => {
+    if (prevSelected.length > 0) return prevSelected;
+    return enrichedCart
+      .filter(item => item.size)
+      .map(item => `${item.id || item.product_id}-${item.size}`);
+  });
+
+  setLoading(false);
+}
+
     };
 
-    fetchCart();
-  }, []);
+    fetchCart(); 
+  }, []);         // ← final del useEffect principal que carga el carrito
+
+// ✅ useEffect separado para que al refrescar no se seleccionen todos los productos sino que mantengan los que se seleccionaron.
+useEffect(() => {
+  if (cart.length > 0 && !initialized.current) {
+    const savedSelection = localStorage.getItem("selected_items");
+
+    console.log("📌 Inicializando selección tras cargar carrito");
+    const keysEnriched = cart
+      .filter(item => item && item.size)
+      .map(item => `${item.id || item.product_id}-${item.size}`);
+
+    if (savedSelection && savedSelection !== "[]") {
+      try {
+        const parsed = JSON.parse(savedSelection);
+        const validKeys = parsed.filter(k => keysEnriched.includes(k));
+        setSelectedItems(validKeys);
+      } catch (e) {
+        console.warn("❌ Error al parsear selección guardada:", e);
+        setSelectedItems(keysEnriched);
+        localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
+      }
+    } else {
+      setSelectedItems(keysEnriched);
+      localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
+    }
+
+    initialized.current = true;
+  }
+}, [cart]);
+
+
 
 // ✅ seccion para Guardar para mas tarde
 useEffect(() => {
@@ -144,8 +193,10 @@ useEffect(() => {
       setCart(enrichedCart);
 
       // ✅ Seleccionar todos los productos al cargar
-const allKeys = enrichedCart.map(item => `${item.id || item.product_id}-${item.size}`);
-setSelectedItems(allKeys);
+setSelectedItems((prevSelected) => {
+  if (prevSelected.length > 0) return prevSelected;
+  return enrichedCart.map(item => `${item.id || item.product_id}-${item.size}`);
+});
 
       refreshCart();
     } catch {
@@ -279,31 +330,38 @@ setSelectedItems(allKeys);
   };
 
     // ✅ SELECCIÓN de productos (checkbox por producto)
-  const toggleItemSelection = (item) => {
-    const key = `${item.id || item.product_id}-${item.size}`;
-    setSelectedItems((prev) =>
-      prev.includes(key)
-        ? prev.filter((k) => k !== key)
-        : [...prev, key]
-    );
-  };
+const toggleItemSelection = (item) => {
+  const key = `${item.id || item.product_id}-${item.size}`;
+  setSelectedItems((prev) => {
+    const updated = prev.includes(key)
+      ? prev.filter((k) => k !== key)
+      : [...prev, key];
+    localStorage.setItem("selected_items", JSON.stringify(updated));
+    return updated;
+  });
+};
+
 
   const isSelected = (item) =>
     selectedItems.includes(`${item.id || item.product_id}-${item.size}`);
 
-  // ✅ SELECCIONAR TODO
-  const toggleSeleccionarTodo = () => {
-    if (selectedItems.length === cart.length) {
-      setSelectedItems([]);
-    } else {
-      const allKeys = cart.map(
-        (item) => `${item.id || item.product_id}-${item.size}`
-      );
-      setSelectedItems(allKeys);
-    }
-  };
+// ✅ SELECCIONAR TODO con persistencia
+const toggleSeleccionarTodo = () => {
+  if (selectedItems.length === cart.length) {
+    setSelectedItems([]);
+    localStorage.setItem("selected_items", JSON.stringify([]));
+  } else {
+    const allKeys = cart.map(
+      (item) => `${item.id || item.product_id}-${item.size}`
+    );
+    setSelectedItems(allKeys);
+    localStorage.setItem("selected_items", JSON.stringify(allKeys));
+  }
+};
 
-  const seleccionarTodoActivo = selectedItems.length === cart.length;
+// ✅ Saber si están todos seleccionados
+const seleccionarTodoActivo = selectedItems.length === cart.length;
+
 
   // ✅ SUBTOTAL dinámico basado en seleccionados
   const calcularSubtotalSeleccionados = () => {
@@ -524,7 +582,14 @@ const guardarParaMasTarde = async (item) => {
 
             <button
               className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-2 rounded"
-              onClick={() => navigate("/checkout")}
+              onClick={() => {
+              const productosSeleccionados = cart.filter(item =>
+                selectedItems.includes(`${item.id || item.product_id}-${item.size}`)
+              );
+              localStorage.setItem("checkout_items", JSON.stringify(productosSeleccionados));
+              navigate("/checkout");
+            }}
+
               disabled={selectedItems.length === 0}
             >
               Proceder al pago
