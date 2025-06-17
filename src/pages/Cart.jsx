@@ -116,25 +116,27 @@ useEffect(() => {
       .map(item => `${item.id || item.product_id}-${item.size}`);
 
     if (savedSelection !== null) {
-  try {
-    const parsed = JSON.parse(savedSelection);
-    const validKeys = parsed.filter(k => keysEnriched.includes(k));
-    setSelectedItems(validKeys);
-  } catch (e) {
-    console.warn("❌ Error al parsear selección guardada:", e);
-    setSelectedItems([]);
-    localStorage.setItem("selected_items", JSON.stringify([]));
-  }
-} else {
-  // Primera vez que entra y no hay nada guardado
-  setSelectedItems(keysEnriched);
-  localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
-}
+      try {
+        const parsed = JSON.parse(savedSelection);
 
+        // ✅ Importante: respetar arreglo vacío también
+        const validKeys = parsed.filter(k => keysEnriched.includes(k));
+        setSelectedItems(validKeys);
+      } catch (e) {
+        console.warn("❌ Error al parsear selección guardada:", e);
+        setSelectedItems([]);
+        localStorage.setItem("selected_items", JSON.stringify([]));
+      }
+    } else {
+      // ✅ Solo si es la PRIMERA VEZ (no hay nada guardado aún)
+      setSelectedItems(keysEnriched);
+      localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
+    }
 
     initialized.current = true;
   }
 }, [cart]);
+
 
 // ✅ Detectar productos nuevos y agregarlos seleccionados por defecto (sin interferir con clic manual)
 useEffect(() => {
