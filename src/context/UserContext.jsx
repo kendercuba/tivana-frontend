@@ -4,13 +4,12 @@ export const UserContext = createContext();
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
 
-  // Cargar datos del usuario y carrito al iniciar
+  // ✅ Al iniciar, intenta validar el token si existe
   useEffect(() => {
-    const token = localStorage.getItem('token');
-
     if (token) {
       fetch(`${import.meta.env.VITE_API_URL}/account`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -18,20 +17,25 @@ export function UserProvider({ children }) {
         .then(res => res.json())
         .then(data => {
           if (data.user) setUser(data.user);
+          else {
+            setToken('');
+            localStorage.removeItem('token');
+          }
         })
-        .catch(() => localStorage.removeItem('token'))
+        .catch(() => {
+          setToken('');
+          localStorage.removeItem('token');
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
 
-    refreshCart(); // Cargar desde el carrito automaticamente
-  }, []);
+    refreshCart();
+  }, [token]);
 
   // 🔄 Refrescar el carrito
   const refreshCart = async () => {
-    const token = localStorage.getItem('token');
-
     if (token) {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
@@ -48,22 +52,24 @@ export function UserProvider({ children }) {
     }
   };
 
-  // Iniciar sesión y cargar el usuario
+  // ✅ Login
   const login = (userData, token) => {
-    localStorage.setItem('token', token);
     setUser(userData);
+    setToken(token);
+    localStorage.setItem('token', token);
     refreshCart();
   };
 
-  // Cerrar sesión
+  // ✅ Logout
   const logout = () => {
-    localStorage.removeItem('token');
     setUser(null);
-    refreshCart(); // Volver a cargar carrito como invitado
+    setToken('');
+    localStorage.removeItem('token');
+    refreshCart();
   };
 
   return (
-    <UserContext.Provider value={{ user, login, logout, loading, cart, refreshCart }}>
+    <UserContext.Provider value={{ user, token, login, logout, loading, cart, refreshCart }}>
       {children}
     </UserContext.Provider>
   );
