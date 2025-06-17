@@ -27,8 +27,12 @@ function Login() {
       const data = await res.json();
       console.log("🔐 Login response:", data); // <-- para debug
 
-      if (res.ok && data.token) {
+        if (res.ok && data.token) {
         login(data.user, data.token); // ✅ Actualiza el contexto global
+        localStorage.setItem("token", data.token); // ✅ guarda el token manualmente
+
+  setMensaje(`✅ Bienvenido ${data.user.nombre}`);
+
         setMensaje(`✅ Bienvenido ${data.user.nombre}`);
 
         // 🛒 MERGE del carrito
