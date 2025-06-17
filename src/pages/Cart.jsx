@@ -105,7 +105,7 @@ useEffect(() => {
     fetchCart(); 
   }, []);         // ← final del useEffect principal que carga el carrito
 
-// ✅ useEffect separado para que al refrescar no se seleccionen todos los productos sino que mantengan los que se seleccionaron.
+// ✅ useEffect separado para mantener las selecciones de productos al recargar
 useEffect(() => {
   if (cart.length > 0 && !initialized.current) {
     const savedSelection = localStorage.getItem("selected_items");
@@ -115,20 +115,22 @@ useEffect(() => {
       .filter(item => item && item.size)
       .map(item => `${item.id || item.product_id}-${item.size}`);
 
-    if (savedSelection && savedSelection !== "[]") {
-      try {
-        const parsed = JSON.parse(savedSelection);
-        const validKeys = parsed.filter(k => keysEnriched.includes(k));
-        setSelectedItems(validKeys);
-      } catch (e) {
-        console.warn("❌ Error al parsear selección guardada:", e);
-        setSelectedItems(keysEnriched);
-        localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
-      }
-    } else {
-      setSelectedItems(keysEnriched);
-      localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
-    }
+    if (savedSelection !== null) {
+  try {
+    const parsed = JSON.parse(savedSelection);
+    const validKeys = parsed.filter(k => keysEnriched.includes(k));
+    setSelectedItems(validKeys);
+  } catch (e) {
+    console.warn("❌ Error al parsear selección guardada:", e);
+    setSelectedItems([]);
+    localStorage.setItem("selected_items", JSON.stringify([]));
+  }
+} else {
+  // Primera vez que entra y no hay nada guardado
+  setSelectedItems(keysEnriched);
+  localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
+}
+
 
     initialized.current = true;
   }
