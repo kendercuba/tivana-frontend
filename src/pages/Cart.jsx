@@ -136,6 +136,22 @@ useEffect(() => {
   }
 }, [cart]);
 
+// ✅ Detectar productos nuevos y agregarlos seleccionados por defecto
+useEffect(() => {
+  if (!initialized.current) return;
+
+  const keysInCart = cart
+    .filter(item => item && item.size)
+    .map(item => `${item.id || item.product_id}-${item.size}`);
+
+  const newKeys = keysInCart.filter(k => !selectedItems.includes(k));
+
+  if (newKeys.length > 0) {
+    const updatedSelection = [...selectedItems, ...newKeys];
+    setSelectedItems(updatedSelection);
+    localStorage.setItem("selected_items", JSON.stringify(updatedSelection));
+  }
+}, [cart]);
 
 
 // ✅ seccion para Guardar para mas tarde
