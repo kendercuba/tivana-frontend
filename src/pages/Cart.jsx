@@ -148,10 +148,12 @@ useEffect(() => {
 
   if (newKeys.length > 0) {
     const updatedSelection = [...selectedItems, ...newKeys];
-    setSelectedItems(updatedSelection);
-    localStorage.setItem("selected_items", JSON.stringify(updatedSelection));
+    if (JSON.stringify(updatedSelection) !== JSON.stringify(selectedItems)) {
+      setSelectedItems(updatedSelection);
+      localStorage.setItem("selected_items", JSON.stringify(updatedSelection));
+    }
   }
-}, [cart]);
+}, [cart, selectedItems]);
 
 
 // ✅ seccion para Guardar para mas tarde
