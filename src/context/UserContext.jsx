@@ -1,3 +1,4 @@
+// src/context/UserContext.jsx
 import { createContext, useEffect, useState } from 'react';
 
 export const UserContext = createContext();
@@ -14,20 +15,28 @@ export function UserProvider({ children }) {
       fetch(`${import.meta.env.VITE_API_URL}/account`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('❌ Token vencido o incorrecto');
+          return res.json();
+        })
         .then(data => {
-          if (data.user) setUser(data.user);
-          else {
+          if (data.user) {
+            setUser(data.user);
+          } else {
+            setUser(null);
             setToken('');
             localStorage.removeItem('token');
           }
         })
-        .catch(() => {
+        .catch((err) => {
+          console.warn('⚠️ Error validando token:', err.message);
+          setUser(null);
           setToken('');
           localStorage.removeItem('token');
         })
         .finally(() => setLoading(false));
     } else {
+      setUser(null);
       setLoading(false);
     }
 
