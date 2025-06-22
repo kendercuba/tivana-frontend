@@ -15,8 +15,7 @@ export default function Header() {
   const totalItems = Array.isArray(cart)
   ? cart.reduce((acc, item) => acc + item.quantity, 0)
   : 0;
-
-  if (loading) return null;
+ 
 
   // Detectar ubicación del usuario por IP
   useEffect(() => {
@@ -46,6 +45,9 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+
+if (loading || !cart) return null;
 
   return (
     <header className="bg-black shadow-md sticky top-0 z-50 py-2">

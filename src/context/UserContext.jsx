@@ -8,74 +8,66 @@ export function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
 
-  // 🔁 Al iniciar, intenta validar la sesión y cargar carrito
-useEffect(() => {
-  const fetchUser = async () => {
-    let sessionUser = null;
+  // 🔁 Refrescar carrito según si hay sesión
+  const refreshCart = async (sessionUser = user) => {
+    if (sessionUser) {
+      // 👤 Usuario logueado
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setCart(data);
+        } else {
+          setCart([]);
+        }
+      } catch (err) {
+        console.error('❌ Error cargando carrito logueado:', err);
+        setCart([]);
+      }
+    } else {
+      // 🧑‍💻 Invitado
+      const localCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+      setCart(localCart);
+    }
+  };
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/account`, {
-        credentials: 'include',
-      });
+  // 🔁 Validar sesión y luego cargar carrito
+  useEffect(() => {
+    const fetchUser = async () => {
+      let sessionUser = null;
 
-      if (!res.ok) throw new Error('Sesión no válida');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/account`, {
+          credentials: 'include',
+        });
 
-      const data = await res.json();
+        if (!res.ok) throw new Error('Sesión no válida');
 
-      if (data.user) {
-        setUser(data.user);
-        sessionUser = data.user;
-      } else {
-        sessionUser = null;
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          sessionUser = data.user;
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.warn('⚠️ Error validando sesión:', err.message);
         setUser(null);
       }
 
-    } catch (err) {
-      console.warn('⚠️ Error validando sesión:', err.message);
-      sessionUser = null;
-      setUser(null);
-    }
+      await refreshCart(sessionUser);
+      setLoading(false);
+    };
 
-    // ✅ Espera a cargar carrito antes de cambiar `loading`
-    await refreshCart(sessionUser);
-    setLoading(false); // <- este debe ser lo último
-  };
+    fetchUser();
+  }, []);
 
-  fetchUser();
-}, []);
-
-
-  // 🔁 Refrescar carrito según si hay sesión
- const refreshCart = async (sessionUser = user) => {
-  if (sessionUser) {
-    // 👤 Usuario logueado: carga desde backend
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-        credentials: 'include',
-      });
-
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setCart(data);
-      } else {
-        setCart([]);
-      }
-    } catch (err) {
-      console.error('❌ Error cargando carrito logueado:', err);
-      setCart([]);
-    }
-  } else {
-    // 🧑‍💻 Usuario invitado: carga desde localStorage
-    const localCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-    setCart(localCart);
-  }
-};
-
-  // ✅ Login (ejecutado luego del login exitoso)
+  // ✅ Login
   const login = (userData) => {
     setUser(userData);
-    refreshCart();
+    refreshCart(userData);
   };
 
   // ✅ Logout
