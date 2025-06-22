@@ -7,12 +7,18 @@ export default function AdminCategorias() {
   const [subcategories, setSubcategories] = useState([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/admin/categorias`)
+    fetch(`${import.meta.env.VITE_API_URL}/admin/categorias`, {
+      credentials: 'include',
+    })
+
       .then((res) => res.json())
       .then(setCategories)
       .catch((err) => console.error("Error loading categories:", err));
 
-    fetch(`${import.meta.env.VITE_API_URL}/admin/subcategorias`)
+    fetch(`${import.meta.env.VITE_API_URL}/admin/subcategories`, {
+      credentials: 'include',
+    })
+    
       .then((res) => res.json())
       .then(setSubcategories)
       .catch((err) => console.error("Error loading subcategories:", err));

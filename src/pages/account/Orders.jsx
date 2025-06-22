@@ -20,10 +20,9 @@ export default function MeOrders() {
     }
 
     fetch(`${import.meta.env.VITE_API_URL}/orders`, {
-      headers: {
-        credentials: 'include'
-      },
-    })
+  credentials: 'include' // ✅ Aquí está bien ubicado
+})
+
       .then((res) => {
         if (!res.ok) throw new Error("Error al obtener pedidos");
         return res.json();

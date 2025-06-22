@@ -45,28 +45,30 @@ export default function Checkout() {
       return;
     }
 
-    if (!token) {
-      setMessage("⚠️ Debes iniciar sesión para completar tu compra.");
-      return;
-    }
+    if (!user) {
+  setMessage("⚠️ Debes iniciar sesión para completar tu compra.");
+  return;
+}
+
 
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/orders/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          items: cart.map((item) => ({
-            product_id: item.product_id || item.id,
-            quantity: item.quantity,
-            size: item.size || null,
-          })),
-          address,
-          payment_method: paymentMethod,
-        }),
-      });
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // ✅ importante para cookies
+      body: JSON.stringify({
+        items: cart.map((item) => ({
+          product_id: item.product_id || item.id,
+          quantity: item.quantity,
+          size: item.size || null,
+        })),
+        address,
+        payment_method: paymentMethod,
+      }),
+    });
+
 
       const data = await res.json();
 

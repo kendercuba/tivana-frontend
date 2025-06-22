@@ -10,7 +10,9 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/admin/stats`)
+    fetch(`${import.meta.env.VITE_API_URL}/admin/stats`, {
+  credentials: 'include',
+})
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error("Error loading dashboard stats", err));
