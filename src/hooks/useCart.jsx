@@ -154,7 +154,9 @@ const enrichedCart = await Promise.all(
       const enrichedCart = await Promise.all(
         (Array.isArray(data) ? data : []).map(async (item) => {
           try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`, {
+            credentials: 'include',
+          });
             const data = await res.json();
             return {
               ...item,
