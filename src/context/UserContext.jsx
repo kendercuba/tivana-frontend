@@ -29,19 +29,21 @@ useEffect(() => {
         sessionUser = null;
         setUser(null);
       }
+
     } catch (err) {
       console.warn('⚠️ Error validando sesión:', err.message);
       sessionUser = null;
       setUser(null);
     }
 
-    // ✅ Esto debe ir fuera del try-catch, pero dentro del async
-    setLoading(false);
+    // ✅ Espera a cargar carrito antes de cambiar `loading`
     await refreshCart(sessionUser);
+    setLoading(false); // <- este debe ser lo último
   };
 
   fetchUser();
 }, []);
+
 
   // 🔁 Refrescar carrito según si hay sesión
  const refreshCart = async (sessionUser = user) => {
