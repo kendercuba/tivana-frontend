@@ -15,7 +15,7 @@ export default function Addresses() {
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/profile/addresses`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then((res) => res.json())
       .then(setAddresses);
@@ -26,9 +26,10 @@ export default function Addresses() {
     await fetch(`${import.meta.env.VITE_API_URL}/profile/addresses`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+  "Content-Type": "application/json",
+},
+credentials: 'include',
+
       body: JSON.stringify(newAddress),
     });
     window.location.reload();

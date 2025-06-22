@@ -15,107 +15,113 @@ export default function ProductDetail() {
   // 🔁 Cargar el producto al montar
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/products/${id}`)
-  .then(async res => {
-    if (!res.ok) throw new Error('❌ Producto no encontrado o error del servidor');
-    const text = await res.text();
-    try {
-      const json = JSON.parse(text);
-      setProduct(json);
-      setMainImage(json.image);
-    } catch (e) {
-      throw new Error('❌ La respuesta del backend no es un JSON válido');
-    }
-  })
-  .catch(err => {
-    console.error('❌ Error al cargar producto:', err.message);
-    setProduct(null);
-  })
-  .finally(() => setLoading(false));
-
+      .then(async res => {
+        if (!res.ok) throw new Error('❌ Producto no encontrado o error del servidor');
+        const text = await res.text();
+        try {
+          const json = JSON.parse(text);
+          setProduct(json);
+          setMainImage(json.image);
+        } catch (e) {
+          throw new Error('❌ La respuesta del backend no es un JSON válido');
+        }
+      })
+      .catch(err => {
+        console.error('❌ Error al cargar producto:', err.message);
+        setProduct(null);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
   // 🧠 Agregar al carrito
-const agregarAlCarrito = async () => {
-  const token = localStorage.getItem('token');
-  const item = {
-    product_id: product.id,
-    quantity: quantity, // ✅ Usar cantidad seleccionada
-    size: selectedSize
-  };
-
-  // ⚠️ Validación más estricta de talla seleccionada
-  if (!selectedSize) {
-    setMessage('⚠️ Por favor selecciona una talla');
-    return;
-  }
-
-  // ✅ Bloque para enviar los productos con el checkbox marcado al carrito
-  const newKey = `${product.id}-${selectedSize}`;
-  const selected = JSON.parse(localStorage.getItem('selected_items') || '[]');
-  if (!selected.includes(newKey)) {
-    localStorage.setItem('selected_items', JSON.stringify([...selected, newKey]));
-  }
-
-  // 🛒 Modo Invitado
-  if (!token) {
-    const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-    const existing = cart.find(p => p.id === item.product_id && p.size === item.size);
-
-    if (existing) {
-      existing.quantity += item.quantity;
-    } else {
-      cart.push({
-        id: product.id,
-        title: product.title,
-        price: product.price,
-        image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
-        quantity: item.quantity,
-        size: selectedSize
-      });
+  const agregarAlCarrito = async () => {
+    // ⚠️ Validación más estricta de talla seleccionada
+    if (!selectedSize) {
+      setMessage('⚠️ Por favor selecciona una talla');
+      return;
     }
 
-    localStorage.setItem('guest_cart', JSON.stringify(cart));
-    await refreshCart();
-    setMessage('✅ Producto agregado al carrito como invitado');
-    return;
-  }
+    const item = {
+      id: product.id, // ✅ usar 'id' directamente, no 'product_id'
+      quantity,
+      size: selectedSize
+    };
 
-  // 🛒 Usuario logueado
-  try {
-    console.log("🔐 Token usado:", token);
-    console.log("🛒 Enviando al backend:", item);
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(item)
-    });
+    // ✅ Bloque para enviar los productos con el checkbox marcado al carrito
+    const newKey = `${product.id}-${selectedSize}`;
+    const selected = JSON.parse(localStorage.getItem('selected_items') || '[]');
+    if (!selected.includes(newKey)) {
+      localStorage.setItem('selected_items', JSON.stringify([...selected, newKey]));
+    }
 
-    const data = await res.json();
+    // 🧑‍💻 Modo Invitado (no hay sesión activa)
+    if (!user) {
+      const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+      const existing = cart.find(p => p.id === item.id && p.size === item.size);
 
-    if (data.message) {
+      if (existing) {
+        existing.quantity += item.quantity;
+      } else {
+        cart.push({
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
+          quantity: item.quantity,
+          size: selectedSize
+        });
+      }
+
+      localStorage.setItem('guest_cart', JSON.stringify(cart));
       await refreshCart();
-      setMessage('✅ Producto agregado al carrito');
-    } else {
-      setMessage('❌ No se pudo agregar al carrito');
+      setMessage('✅ Producto agregado al carrito como invitado');
+      return;
     }
-  } catch {
-    setMessage('❌ Error al conectar con el servidor');
-  }
-};
 
+   // 👤 Usuario logueado (usamos cookie con credentials: 'include')
+try {
+  // 🔍 Resuelve el ID real del producto
+  const resolver = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${product.product_id}`);
+  const resolverData = await resolver.json();
+
+  if (!resolver.ok || !resolverData.id) {
+    setMessage('❌ No se pudo resolver el producto');
+    return;
+  }
+
+  const realId = resolverData.id;
+
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      product_id: realId, // ✅ este es el ID de PostgreSQL
+      quantity,           // ✅ tu variable existente
+      size: selectedSize, // ✅ tu variable existente
+    }),
+  });
+
+  const result = await res.json();
+
+  if (res.ok && result.message) {
+    await refreshCart?.(); // si refreshCart está disponible
+    setMessage('✅ Producto agregado al carrito');
+  } else {
+    setMessage(`❌ ${result.message || 'No se pudo agregar al carrito'}`);
+  }
+} catch (err) {
+  console.error('❌ Error al conectar con el servidor:', err);
+  setMessage('❌ Error al conectar con el servidor');
+}
+
+  }
   if (loading) return <div className="p-4">Cargando producto...</div>;
   if (!product) return <div className="p-4 text-red-600">Producto no encontrado</div>;
 
   // 📦 Parsear imágenes y tallas
   const images = Array.isArray(product.images) ? product.images : JSON.parse(product.images || '[]');
   const sizes = Array.isArray(product.sizes) ? product.sizes : JSON.parse(product.sizes || '[]');
-
-
-
-
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6">

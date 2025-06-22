@@ -15,7 +15,7 @@ export default function Saved() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${import.meta.env.VITE_API_URL}/saved`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include'
         });
         const data = await res.json();
         setSavedItems(Array.isArray(data) ? data : []);
@@ -38,10 +38,9 @@ export default function Saved() {
       // 1. Agregar al carrito
       await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+
         body: JSON.stringify({
           product_id: item.product_id,
           size: item.size,
@@ -52,7 +51,7 @@ export default function Saved() {
       // 2. Eliminar del guardado
       await fetch(`${import.meta.env.VITE_API_URL}/saved/${item.product_id}/${item.size}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
 
       // 3. Actualizar vista
@@ -71,7 +70,8 @@ export default function Saved() {
       const token = localStorage.getItem("token");
       await fetch(`${import.meta.env.VITE_API_URL}/saved/${item.product_id}/${item.size}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+
       });
 
       setSavedItems((prev) =>

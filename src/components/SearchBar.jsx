@@ -19,10 +19,12 @@ const SearchBar = () => {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/search-logs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include',
       body: JSON.stringify({
         usuario_id: usuario?.id || null,
         termino: search,
       }),
+
     });
 
     const result = await response.json();

@@ -7,7 +7,7 @@ function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [mensaje, setMensaje] = useState('');
   const navigate = useNavigate();
-  const { login } = useContext(UserContext); // ✅ Importa desde contexto
+  const { login } = useContext(UserContext);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,22 +18,17 @@ function Login() {
     setMensaje('');
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
-        
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
+        credentials: 'include',
       });
 
       const data = await res.json();
-      console.log("🔐 Login response:", data); // <-- para debug
+      console.log("🔐 Login response:", data);
 
-        if (res.ok && data.token) {
-        localStorage.setItem("token", data.token); // ✅ guarda el token manualmente
-        login(data.user, data.token); // ✅ Actualiza el contexto global
-        
-
-  setMensaje(`✅ Bienvenido ${data.user.nombre}`);
-
+      if (res.ok && data.user) {
+        login(data.user);
         setMensaje(`✅ Bienvenido ${data.user.nombre}`);
 
         // 🛒 MERGE del carrito
@@ -51,11 +46,8 @@ function Login() {
           try {
             await fetch(`${import.meta.env.VITE_API_URL}/cart/merge`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${data.token}`
-              },
-              body: JSON.stringify({ items: guestCart })
+              body: JSON.stringify({ items: guestCart }),
+              credentials: 'include',
             });
             localStorage.removeItem('guest_cart');
             console.log('🛒 Carrito fusionado exitosamente');
@@ -79,9 +71,30 @@ function Login() {
     <div className="p-4 max-w-md mx-auto">
       <h2 className="text-2xl font-bold mb-4">Iniciar sesión</h2>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input name="email" type="email" placeholder="Correo" className="w-full border px-3 py-2" onChange={handleChange} value={form.email} required />
-        <input name="password" type="password" placeholder="Contraseña" className="w-full border px-3 py-2" onChange={handleChange} value={form.password} required />
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 w-full">Ingresar</button>
+        <input
+          name="email"
+          type="email"
+          placeholder="Correo"
+          className="w-full border px-3 py-2"
+          onChange={handleChange}
+          value={form.email}
+          required
+        />
+        <input
+          name="password"
+          type="password"
+          placeholder="Contraseña"
+          className="w-full border px-3 py-2"
+          onChange={handleChange}
+          value={form.password}
+          required
+        />
+        <button
+          type="submit"
+          className="bg-green-600 text-white px-4 py-2 w-full"
+        >
+          Ingresar
+        </button>
       </form>
       {mensaje && <p className="mt-4 text-center">{mensaje}</p>}
     </div>

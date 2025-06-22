@@ -6,17 +6,15 @@ import { useEffect, useState, useContext, useRef } from "react";
 import { UserContext } from '../context/UserContext';
 
 export default function Header() {
-  const context = useContext(UserContext);
-  const user = context?.user;
-  const logout = context?.logout;
-  const cart = context?.cart || [];
-
+  const { user, logout, cart, loading } = useContext(UserContext);
   const [ubicacion, setUbicacion] = useState("Venezuela");
   const navigate = useNavigate();
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const menuRef = useRef(null);
 
-  const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const totalItems = Array.isArray(cart)
+  ? cart.reduce((acc, item) => acc + item.quantity, 0)
+  : 0;
 
   // Detectar ubicación del usuario por IP
   useEffect(() => {
@@ -214,7 +212,7 @@ export default function Header() {
               className="flex items-center px-3 py-1 rounded-full hover:bg-blue-800 transition relative"
             >
               <ShoppingCart className="h-5 w-5 text-white" />
-              {totalItems > 0 && (
+              {!loading && totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                   {totalItems}
                 </span>

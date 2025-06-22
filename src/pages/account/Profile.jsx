@@ -9,22 +9,23 @@ export default function Profile() {
   const token = localStorage.getItem("token");
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/account/update`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ nombre, apellido }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      alert("✅ Datos actualizados");
-    } else {
-      alert(`❌ ${data.message}`);
-    }
-  };
+  e.preventDefault();
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/account/update`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: 'include',
+    body: JSON.stringify({ nombre, apellido }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    alert("✅ Datos actualizados");
+  } else {
+    alert(`❌ ${data.message}`);
+  }
+};
+
 
   return (
     <div className="max-w-xl mx-auto p-4">

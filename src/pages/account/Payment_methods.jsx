@@ -12,26 +12,28 @@ export default function Payments() {
 
   const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/profile/payment-methods`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then(setPayments);
-  }, []);
+ useEffect(() => {
+  fetch(`${import.meta.env.VITE_API_URL}/profile/payment-methods`, {
+    credentials: 'include'
+  })
+    .then((res) => res.json())
+    .then(setPayments);
+}, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    await fetch(`${import.meta.env.VITE_API_URL}/profile/payment-methods`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(newPayment),
-    });
-    window.location.reload();
-  };
+
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  await fetch(`${import.meta.env.VITE_API_URL}/profile/payment-methods`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: 'include',
+    body: JSON.stringify(newPayment),
+  });
+  window.location.reload();
+};
+
 
   return (
     <div className="max-w-2xl mx-auto p-4">

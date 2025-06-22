@@ -19,11 +19,12 @@ export default function Security() {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/profile/change-password`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
+        credentials: 'include',
         body: JSON.stringify({ currentPassword, newPassword }),
       });
+
 
       const data = await res.json();
       if (res.ok) {

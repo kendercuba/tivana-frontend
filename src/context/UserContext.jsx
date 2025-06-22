@@ -5,80 +5,103 @@ export const UserContext = createContext();
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
 
-  // ✅ Al iniciar, intenta validar el token si existe
-  useEffect(() => {
-    if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/account`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then(res => {
-          if (!res.ok) throw new Error('❌ Token vencido o incorrecto');
-          return res.json();
-        })
-        .then(data => {
-          if (data.user) {
-            setUser(data.user);
-          } else {
-            setUser(null);
-            setToken('');
-            localStorage.removeItem('token');
-          }
-        })
-        .catch((err) => {
-          console.warn('⚠️ Error validando token:', err.message);
-          setUser(null);
-          setToken('');
-          localStorage.removeItem('token');
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setUser(null);
-      setLoading(false);
-    }
+  // 🔁 Al iniciar, intenta validar la sesión y cargar carrito
+useEffect(() => {
+  const fetchUser = async () => {
+    let sessionUser = null;
 
-    refreshCart();
-  }, [token]);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/account`, {
+        credentials: 'include',
+      });
 
-  // 🔄 Refrescar el carrito
-  const refreshCart = async () => {
-    if (token) {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        setCart(data);
-      } catch (err) {
-        console.error('❌ Error cargando carrito:', err);
+      if (!res.ok) throw new Error('Sesión no válida');
+
+      const data = await res.json();
+
+      if (data.user) {
+        setUser(data.user);
+        sessionUser = data.user;
+      } else {
+        sessionUser = null;
+        setUser(null);
       }
-    } else {
-      const localCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-      setCart(localCart);
+    } catch (err) {
+      console.warn('⚠️ Error validando sesión:', err.message);
+      sessionUser = null;
+      setUser(null);
     }
+
+    // ✅ Esto debe ir fuera del try-catch, pero dentro del async
+    setLoading(false);
+    await refreshCart(sessionUser);
   };
 
-  // ✅ Login
-  const login = (userData, token) => {
+  fetchUser();
+}, []);
+
+  // 🔁 Refrescar carrito según si hay sesión
+ const refreshCart = async (sessionUser = user) => {
+  if (sessionUser) {
+    // 👤 Usuario logueado: carga desde backend
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setCart(data);
+      } else {
+        setCart([]);
+      }
+    } catch (err) {
+      console.error('❌ Error cargando carrito logueado:', err);
+      setCart([]);
+    }
+  } else {
+    // 🧑‍💻 Usuario invitado: carga desde localStorage
+    const localCart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+    setCart(localCart);
+  }
+};
+
+  // ✅ Login (ejecutado luego del login exitoso)
+  const login = (userData) => {
     setUser(userData);
-    setToken(token);
-    localStorage.setItem('token', token);
     refreshCart();
   };
 
   // ✅ Logout
-  const logout = () => {
-    setUser(null);
-    setToken('');
-    localStorage.removeItem('token');
-    refreshCart();
+  const logout = async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.warn('⚠️ Error al cerrar sesión:', err.message);
+    } finally {
+      setUser(null);
+      setCart([]);
+    }
   };
 
   return (
-    <UserContext.Provider value={{ user, token, login, logout, loading, cart, refreshCart }}>
+    <UserContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        loading,
+        cart,
+        refreshCart,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

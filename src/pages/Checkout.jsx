@@ -18,7 +18,7 @@ export default function Checkout() {
 
     if (token) {
       fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
         .then((res) => res.json())
         .then((data) => setCart(data))

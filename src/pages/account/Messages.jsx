@@ -6,7 +6,7 @@ export default function Messages() {
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/account/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then((res) => res.json())
       .then(setMessages);

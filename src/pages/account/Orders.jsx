@@ -21,7 +21,7 @@ export default function MeOrders() {
 
     fetch(`${import.meta.env.VITE_API_URL}/orders`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        credentials: 'include'
       },
     })
       .then((res) => {
