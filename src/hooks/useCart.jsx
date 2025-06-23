@@ -16,7 +16,7 @@ function useCart() {
     const fetchCart = async () => {
       const token = localStorage.getItem("token");
       if (token) {
-        // ✅ Logueado
+        // ✅ 🧑‍💻 MODO USUARIO LOGUEADO
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
             credentials: "include",
@@ -27,11 +27,11 @@ function useCart() {
           const enrichedCart = await Promise.all(
             (Array.isArray(data) ? data : []).map(async (item) => {
               try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`, {
                 credentials: 'include'
               });
 
-                const data = await res.json();
+              const data = await res.json();
                 return {
                   ...item,
                   title: data.title,
