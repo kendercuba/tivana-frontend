@@ -16,47 +16,37 @@ function useCart() {
     const fetchCart = async () => {
       const token = localStorage.getItem("token");
       if (token) {
-        // ✅ 🧑‍💻 MODO USUARIO LOGUEADO
-        try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-            credentials: "include",
-          });
-          const data = await res.json();
-          console.log("🛒 Productos del carrito (logueado):", data);
+     // ✅ 🧑‍💻 MODO USUARIO LOGUEADO
+try {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+    credentials: "include",
+  });
+  const data = await res.json();
+  console.log("🛒 Productos del carrito (logueado):", data);
 
-          const enrichedCart = await Promise.all(
-            (Array.isArray(data) ? data : []).map(async (item) => {
-              try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`, {
-                credentials: 'include'
-              });
-
-              const data = await res.json();
-                return {
-                  ...item,
-                  title: data.title,
-                  image: data.image,
-                  sizes: Array.isArray(data.sizes)
-                    ? data.sizes
-                    : typeof data.sizes === "string"
-                    ? JSON.parse(data.sizes || "[]")
-                    : [],
-                  price: data.price,
-                  id: data.id,
-                };
-              } catch {
-                return item;
-              }
-            })
-          );
-
-          setCart(enrichedCart);
-        } catch {
-          setError("❌ Error al obtener el carrito");
-          setCart([]);
-        } finally {
-          setLoading(false);
+  const resolvedCart = await Promise.all(
+    data.map(async (item) => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`);
+        const resolved = await res.json();
+        if (resolved?.id) {
+          return { ...item, id: resolved.id }; // Solo agregamos el ID real
         }
+      } catch (err) {
+        console.error("❌ Error resolviendo ID:", item.product_id);
+      }
+      return item;
+    })
+  );
+
+  setCart(resolvedCart);
+} catch {
+  setError("❌ Error al obtener el carrito");
+  setCart([]);
+} finally {
+  setLoading(false);
+}
+
       } else {
        // 🧑‍💻 Invitado
 const localCart = localStorage.getItem("guest_cart");
