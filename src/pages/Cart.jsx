@@ -45,7 +45,7 @@ export default function Cart() {
       <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6">
         {/* 🧭 Columna izquierda: productos */}
         <Card className="w-full lg:w-4/5">
-          <h1 className="text-2xl font-bold mb-6">Carrito</h1>
+          <h1 className="text-2xl font-bold mb-6">Carrito de compras</h1>
 
           
             {/* Validacion condicional si esta vacio el carrito desaparece el boton "seleccionar todo" */}
