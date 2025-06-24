@@ -22,17 +22,18 @@ try {
     credentials: "include",
   });
   const data = await res.json();
-  console.log("🛒 Productos del carrito (logueado):", data);
+  console.log("🛒 Cart en useCart:", data); // 👈 AÑADE ESTO
 
   const resolvedCart = await Promise.all(
   data.map(async (item) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${product_id}`);
+      const res = await fetch( `${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`)
       const resolved = await res.json();
 
       if (resolved?.id) {
         return {
           ...item,
+          product_id: item.product_id,
           id: resolved.id,
           title: resolved.title,
           image: resolved.image,
