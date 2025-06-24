@@ -27,7 +27,7 @@ try {
   const resolvedCart = await Promise.all(
   data.map(async (item) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${product_id}`);
       const resolved = await res.json();
 
       if (resolved?.id) {
