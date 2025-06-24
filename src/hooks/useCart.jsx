@@ -25,19 +25,29 @@ try {
   console.log("🛒 Productos del carrito (logueado):", data);
 
   const resolvedCart = await Promise.all(
-    data.map(async (item) => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`);
-        const resolved = await res.json();
-        if (resolved?.id) {
-          return { ...item, id: resolved.id }; // Solo agregamos el ID real
-        }
-      } catch (err) {
-        console.error("❌ Error resolviendo ID:", item.product_id);
+  data.map(async (item) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`);
+      const resolved = await res.json();
+
+      if (resolved?.id) {
+        return {
+          ...item,
+          id: resolved.id,
+          title: resolved.title,
+          image: resolved.image,
+          price: resolved.price,
+          sizes: Array.isArray(resolved.sizes)
+            ? resolved.sizes
+            : JSON.parse(resolved.sizes || "[]"),
+        };
       }
-      return item;
-    })
-  );
+    } catch (err) {
+      console.error("❌ Error resolviendo ID:", item.product_id);
+    }
+    return item;
+  })
+);
 
   setCart(resolvedCart);
 } catch {

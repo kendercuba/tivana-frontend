@@ -16,7 +16,6 @@ export default function Header() {
   ? cart.reduce((acc, item) => acc + item.quantity, 0)
   : 0;
  
-
   // Detectar ubicación del usuario por IP
   useEffect(() => {
     fetch("https://ipapi.co/json/")

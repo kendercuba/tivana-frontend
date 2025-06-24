@@ -65,10 +65,36 @@ export function UserProvider({ children }) {
   }, []);
 
   // ✅ Login
-  const login = (userData) => {
-    setUser(userData);
-    refreshCart(userData);
-  };
+  // ✅ Login con fusión de carrito invitado
+const login = async (userData) => {
+  setUser(userData);
+
+  // 🔄 Intentar fusionar carrito de invitado
+  const guestCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
+  if (guestCart.length > 0) {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(guestCart),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.warn("❌ Error fusionando carrito:", error);
+      } else {
+        console.log("✅ Carrito fusionado exitosamente");
+        localStorage.removeItem("guest_cart");
+      }
+    } catch (err) {
+      console.error("❌ Error en solicitud de merge:", err);
+    }
+  }
+
+  await refreshCart(userData);
+};
+
 
   // ✅ Logout
   const logout = async () => {
