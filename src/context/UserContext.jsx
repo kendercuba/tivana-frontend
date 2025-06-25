@@ -119,6 +119,7 @@ const login = async (userData) => {
         logout,
         loading,
         cart,
+        setCart,
         refreshCart,
       }}
     >

@@ -3,8 +3,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
 function useCart() {
-  const { user, refreshCart } = useContext(UserContext);
-  const [cart, setCart] = useState([]);
+  const { user, cart, setCart, refreshCart } = useContext(UserContext);
   const [savedItems, setSavedItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
