@@ -10,52 +10,56 @@ function useCart() {
   const [error, setError] = useState("");
   const initialized = useRef(false);
 
-  // 📦 useEffect para cargar carrito (logueado o invitado)
-  useEffect(() => {
-    const fetchCart = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-     // ✅ 🧑‍💻 MODO USUARIO LOGUEADO
-try {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-    credentials: "include",
-  });
-  const data = await res.json();
-  console.log("🛒 Cart en useCart:", data); // 👈 AÑADE ESTO
+// 📦 useEffect para cargar carrito (logueado )
+useEffect(() => {
+  const fetchCart = async () => {
+    const token = localStorage.getItem("token");
 
-  const resolvedCart = await Promise.all(
-  data.map(async (item) => {
-    try {
-      const res = await fetch( `${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`)
-      const resolved = await res.json();
+    if (token) {
+      // ✅ MODO USUARIO LOGUEADO
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        console.log("🛒 Cart en useCart (logueado):", data);
 
-      if (resolved?.id) {
-        return {
-          ...item,
-          product_id: item.product_id,
-          id: resolved.id,
-          title: resolved.title,
-          image: resolved.image,
-          price: resolved.price,
-          sizes: Array.isArray(resolved.sizes)
-            ? resolved.sizes
-            : JSON.parse(resolved.sizes || "[]"),
-        };
+        const resolvedCart = await Promise.all(
+          data.map(async (item) => {
+            try {
+              const res = await fetch(
+                `${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`
+              );
+              const resolved = await res.json();
+
+              if (resolved?.id) {
+                return {
+                  ...item,
+                  product_id: item.product_id,
+                  id: resolved.id,
+                  title: resolved.title,
+                  image: resolved.image,
+                  price: resolved.price,
+                  sizes: Array.isArray(resolved.sizes)
+                    ? resolved.sizes
+                    : JSON.parse(resolved.sizes || "[]"),
+                };
+              }
+            } catch (err) {
+              console.error("❌ Error resolviendo ID:", item.product_id);
+            }
+            return item;
+          })
+        );
+
+        setCart(resolvedCart);
+      } catch (err) {
+        console.error("❌ Error cargando carrito logueado:", err);
+        setError("Error al obtener el carrito");
+        setCart([]);
+      } finally {
+        setLoading(false); // 🔄 IMPORTANTE para no renderizar antes de tiempo
       }
-    } catch (err) {
-      console.error("❌ Error resolviendo ID:", item.product_id);
-    }
-    return item;
-  })
-);
-
-  setCart(resolvedCart);
-} catch {
-  setError("❌ Error al obtener el carrito");
-  setCart([]);
-} finally {
-  setLoading(false);
-}
 
       } else {
        // 🧑‍💻 Invitado
