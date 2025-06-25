@@ -12,11 +12,15 @@ function useCart() {
 
 // 📦 useEffect para cargar carrito (logueado )
 useEffect(() => {
-  const fetchCart = async () => {
-    const token = localStorage.getItem("token");
+  // Solo cargar cuando se sepa si el usuario está autenticado o no
+  if (user === null && localStorage.getItem("token")) {
+    // Esperar a que se cargue sesión desde UserContext
+    return;
+  }
 
-    if (token) {
-      // ✅ MODO USUARIO LOGUEADO
+  const fetchCart = async () => {
+    if (user) {
+      // ✅ Usuario logueado
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
           credentials: "include",
@@ -58,49 +62,47 @@ useEffect(() => {
         setError("Error al obtener el carrito");
         setCart([]);
       } finally {
-        setLoading(false); // 🔄 IMPORTANTE para no renderizar antes de tiempo
+        setLoading(false);
       }
+    } else {
+      // 🧑‍💻 Invitado
+      const localCart = localStorage.getItem("guest_cart");
+      const parsed = localCart ? JSON.parse(localCart) : [];
 
-      } else {
-       // 🧑‍💻 Invitado
-const localCart = localStorage.getItem("guest_cart");
-const parsed = localCart ? JSON.parse(localCart) : [];
+      const enrichedCart = await Promise.all(
+        parsed.map(async (item) => {
+          try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`);
+            const data = await res.json();
 
-const enrichedCart = await Promise.all(
-  parsed.map(async (item) => {
-    try {
-      // Ya que item.id es el ID real de PostgreSQL, usamos directamente la ruta normal
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.id}`);
-      const data = await res.json();
+            const sizes = Array.isArray(data.sizes)
+              ? data.sizes
+              : JSON.parse(data.sizes || "[]");
 
-      const sizes = Array.isArray(data.sizes)
-        ? data.sizes
-        : JSON.parse(data.sizes || "[]");
+            return {
+              ...item,
+              sizes,
+              title: data.title,
+              image: data.image,
+              price: data.price,
+              id: data.id,
+              realId: data.id,
+            };
+          } catch (err) {
+            console.error("❌ Error al enriquecer producto invitado:", err);
+            return null;
+          }
+        })
+      );
 
-      return {
-        ...item,
-        sizes,
-        title: data.title,
-        image: data.image,
-        price: data.price,
-        id: data.id,
-        realId: data.id,
-      };
-    } catch (err) {
-      console.error("❌ Error al enriquecer producto invitado:", err);
-      return null;
+      setCart(enrichedCart.filter(Boolean));
+      setLoading(false);
     }
-  })
-);
+  };
 
-        setCart(enrichedCart.filter(Boolean));
-        setLoading(false); // ✅ Agrega esta línea aquí
-      }
-    };
+  fetchCart();
+}, [user]);
 
-    
-    fetchCart();
-  }, []);
 
   // ✅ useEffect para mantener selección de productos al recargar
   useEffect(() => {
