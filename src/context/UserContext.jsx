@@ -19,6 +19,8 @@ export function UserProvider({ children }) {
         const data = await res.json();
         if (Array.isArray(data)) {
           setCart(data);
+          window.dispatchEvent(new Event("cart-updated")); // ✅ Dispara evento para restaurar selección
+
         } else {
           setCart([]);
         }

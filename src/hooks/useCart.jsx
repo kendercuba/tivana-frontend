@@ -8,9 +8,12 @@ function useCart() {
   const [selectedItems, setSelectedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const initialized = useRef(false);
+  const selectedKey = user ? `selected_items_${user.id}` : "selected_items";
+  const skipRestoreRef = useRef(false);
 
-// 📦 useEffect para cargar carrito (logueado )
+
+  
+  // 📦 useEffect para cargar carrito (logueado )
 useEffect(() => {
   // Solo cargar cuando se sepa si el usuario está autenticado o no
   if (user === null && localStorage.getItem("token")) {
@@ -29,41 +32,47 @@ useEffect(() => {
         console.log("🛒 Cart en useCart (logueado):", data);
 
         const resolvedCart = await Promise.all(
-          data.map(async (item) => {
-            try {
-              const res = await fetch(
-                `${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`
-              );
-              const resolved = await res.json();
+        data.map(async (item) => {
+          try {
+            // 👇 Ya tenemos el ID real (item.product_id es el ID interno)
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/products/${item.product_id}`);
+            const product = await res.json();
 
-              if (resolved?.id) {
-                return {
-                  ...item,
-                  product_id: item.product_id,
-                  id: resolved.id,
-                  title: resolved.title,
-                  image: resolved.image,
-                  price: resolved.price,
-                  sizes: Array.isArray(resolved.sizes)
-                    ? resolved.sizes
-                    : JSON.parse(resolved.sizes || "[]"),
-                };
-              }
-            } catch (err) {
-              console.error("❌ Error resolviendo ID:", item.product_id);
+            if (product?.id) {
+              return {
+                ...item,
+                id: product.id, // ID interno
+                title: product.title,
+                image: product.image,
+                price: product.price,
+                sizes: Array.isArray(product.sizes)
+                  ? product.sizes
+                  : JSON.parse(product.sizes || "[]"),
+              };
             }
-            return item;
-          })
-        );
+          } catch (err) {
+            console.error("❌ Error al enriquecer producto del carrito:", err);
+          }
+          return item;
+        })
+      );
 
         setCart(resolvedCart);
-      } catch (err) {
+        // 🟢 Recuperar selección previa sin sobrescribirla
+
+const savedSelection = JSON.parse(localStorage.getItem(selectedKey) || "[]");
+setSelectedItems(savedSelection);
+
+
+        } catch (err) {
         console.error("❌ Error cargando carrito logueado:", err);
         setError("Error al obtener el carrito");
         setCart([]);
       } finally {
         setLoading(false);
       }
+
+      
     } else {
       // 🧑‍💻 Invitado
       const localCart = localStorage.getItem("guest_cart");
@@ -80,14 +89,16 @@ useEffect(() => {
               : JSON.parse(data.sizes || "[]");
 
             return {
-              ...item,
-              sizes,
-              title: data.title,
-              image: data.image,
-              price: data.price,
-              id: data.id,
-              realId: data.id,
-            };
+            ...item,
+            sizes,
+            title: data.title,
+            image: data.image,
+            price: data.price,
+            id: data.id,
+            realId: data.id,
+            size: item.size || "", // ← Asegura que siempre tenga alguna talla
+          };
+
           } catch (err) {
             console.error("❌ Error al enriquecer producto invitado:", err);
             return null;
@@ -104,32 +115,28 @@ useEffect(() => {
 }, [user]);
 
 
-  // ✅ useEffect para mantener selección de productos al recargar
-  useEffect(() => {
-    if (cart.length > 0 && !initialized.current) {
-      const savedSelection = localStorage.getItem("selected_items");
+// ✅ useEffect para mantener selección de productos al recargar
+useEffect(() => {
+  if (cart.length === 0) return;
 
-      const keysEnriched = cart
-        .filter(item => item && item.size)
-        .map(item => `${item.id || item.product_id}-${item.size}`);
+  const keysEnriched = cart
+    .filter(item => item && item.size)
+    .map(item => `${item.id || item.product_id}-${item.size}`);
 
-      if (savedSelection !== null) {
-        try {
-          const parsed = JSON.parse(savedSelection);
-          const validKeys = parsed.filter(k => keysEnriched.includes(k));
-          setSelectedItems(validKeys);
-        } catch {
-          setSelectedItems([]);
-          localStorage.setItem("selected_items", JSON.stringify([]));
-        }
-      } else {
-        setSelectedItems(keysEnriched);
-        localStorage.setItem("selected_items", JSON.stringify(keysEnriched));
-      }
+  const savedSelection = JSON.parse(localStorage.getItem(selectedKey) || "[]");
 
-      initialized.current = true;
-    }
-  }, [cart]);
+  // 🔒 Restaurar solo si selectedItems NO coincide con lo que hay en localStorage
+  setSelectedItems((prev) => {
+    const prevSet = new Set(prev);
+    const savedSet = new Set(savedSelection.filter(k => keysEnriched.includes(k)));
+
+    const iguales = prevSet.size === savedSet.size && [...prevSet].every(v => savedSet.has(v));
+    if (iguales) return prev; // no tocar si ya están iguales
+    return [...savedSet];
+  });
+}, [cart, selectedKey]);
+
+
 
   // ✅ Cargar productos guardados (solo logueado)
   useEffect(() => {
@@ -151,87 +158,121 @@ useEffect(() => {
 
   // 🔄 Actualizar carrito logueado
   const actualizarCarrito = async () => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
+      credentials: 'include',
+    });
+    const data = await res.json();
 
-      const enrichedCart = await Promise.all(
-        (Array.isArray(data) ? data : []).map(async (item) => {
-          try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`, {
+    const enrichedCart = await Promise.all(
+      (Array.isArray(data) ? data : []).map(async (item) => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`, {
             credentials: 'include'
           });
-            const data = await res.json();
-            return {
-              ...item,
-              title: data.title,
-              image: data.image,
-              sizes: Array.isArray(data.sizes)
-                ? data.sizes
-                : typeof data.sizes === "string"
-                ? JSON.parse(data.sizes || "[]")
-                : [],
-              price: data.price,
-              id: data.id,
-            };
-          } catch {
-            return item;
-          }
-        })
-      );
+          const data = await res.json();
+          return {
+            ...item,
+            title: data.title,
+            image: data.image,
+            sizes: Array.isArray(data.sizes)
+              ? data.sizes
+              : typeof data.sizes === "string"
+              ? JSON.parse(data.sizes || "[]")
+              : [],
+            price: data.price,
+            id: data.id,
+          };
+        } catch {
+          return item;
+        }
+      })
+    );
 
-      setCart(enrichedCart);
-      refreshCart();
-    } catch {
-      setCart([]);
-      console.error("❌ Error actualizando carrito");
-    }
-  };
+    setCart(enrichedCart);
+
+// ✅ Restaurar selección *después* de setCart con nuevas claves
+const keysEnriched = enrichedCart
+  .filter(item => item && item.size)
+  .map(item => `${item.id || item.product_id}-${item.size}`);
+
+// 🟡 Restaurar desde localStorage SOLO si selectedItems está vacío
+const saved = JSON.parse(localStorage.getItem(selectedKey) || "[]");
+const valid = saved.filter(k => keysEnriched.includes(k));
+setSelectedItems(valid);
+
+
+    refreshCart();
+
+  } catch {
+    setCart([]);
+    console.error("❌ Error actualizando carrito");
+  }
+};
 
   // ➕ Funciones para logueado
   const aumentarCantidad = async (productId, size) => {
-    setCart((prev) =>
-      prev.map((item) =>
-        item.product_id === productId && item.size === size
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
-        method: "PUT",
-        credentials: 'include',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: productId, size, action: "increment" }),
-      });
-      refreshCart();
-    } catch {
-      console.error("❌ Error al aumentar cantidad");
-    }
-  };
+  skipRestoreRef.current = true;
+  setCart((prev) =>
+    prev.map((item) =>
+      item.product_id === productId && item.size === size
+        ? { ...item, quantity: item.quantity + 1 }
+        : item
+    )
+  );
+
+  const key = `${productId}-${size}`;
+  setSelectedItems((prev) => {
+  const nuevaSeleccion = prev.includes(key) ? prev : [...prev, key];
+  localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion)); // guardamos ANTES
+  return nuevaSeleccion;
+});
+
+
+  try {
+    await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: productId, size, action: "increment" }),
+    });
+    await actualizarCarrito(); // usamos la versión que respeta `selectedItems`
+  } catch {
+    console.error("❌ Error al aumentar cantidad");
+  }
+};
+
 
   const disminuirCantidad = async (productId, size) => {
-    setCart((prev) =>
-      prev.map((item) =>
-        item.product_id === productId && item.size === size && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify({ product_id: productId, size, action: "decrement" }),
-      });
-      refreshCart();
-    } catch {
-      console.error("❌ Error al disminuir cantidad");
-    }
-  };
+  setCart((prev) =>
+    prev.map((item) =>
+      item.product_id === productId && item.size === size && item.quantity > 1
+        ? { ...item, quantity: item.quantity - 1 }
+        : item
+    )
+  );
+
+  // ✅ Asegurar que el producto sigue seleccionado
+  const key = `${productId}-${size}`;
+  setSelectedItems((prev) => {
+    const nuevaSeleccion = prev.includes(key) ? prev : [...prev, key];
+    localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
+    return nuevaSeleccion;
+  });
+
+  try {
+    await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ product_id: productId, size, action: "decrement" }),
+    });
+    await actualizarCarrito(); // ✅ esta versión respeta la selección
+  } catch {
+    console.error("❌ Error al disminuir cantidad");
+  }
+};
+
 
   const eliminarProducto = async (productId, size) => {
     await fetch(`${import.meta.env.VITE_API_URL}/cart/delete/${productId}/${size}`, {
@@ -278,32 +319,7 @@ useEffect(() => {
     guardarCarritoLocal(nuevoCarrito);
   };
 
-  // 🎯 Cambiar talla
-  const cambiarTalla = async (item, newSize) => {
-    if (user) {
-      await fetch(`${import.meta.env.VITE_API_URL}/cart/update-size`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: 'include',
-        body: JSON.stringify({
-          product_id: item.product_id,
-          old_size: item.size,
-          new_size: newSize,
-        }),
-      });
-      actualizarCarrito();
-    } else {
-      const localCart = JSON.parse(localStorage.getItem("guest_cart") || "[]");
-      const nuevoCarrito = localCart.map((p) => {
-        if (p.id === item.id && p.size === item.size) {
-          return { ...p, size: newSize, sizes: p.sizes || item.sizes };
-        }
-        return p;
-      });
-      guardarCarritoLocal(nuevoCarrito);
-    }
-  };
-
+ 
   // ✅ Funciones de selección
   const toggleItemSelection = (productId, size) => {
     const key = `${productId}-${size}`;
@@ -313,22 +329,25 @@ useEffect(() => {
       : [...selectedItems, key];
 
     setSelectedItems(actualizada);
-    localStorage.setItem("selected_items", JSON.stringify(actualizada));
+    localStorage.setItem(selectedKey, JSON.stringify(actualizada));
   };
 
   const toggleSeleccionarTodo = () => {
-    const todas = cart.map((item) => `${item.id || item.product_id}-${item.size}`);
-    if (selectedItems.length === todas.length) {
-      setSelectedItems([]);
-      localStorage.setItem("selected_items", JSON.stringify([]));
-    } else {
-      setSelectedItems(todas);
-      localStorage.setItem("selected_items", JSON.stringify(todas));
-    }
-  };
+  const todas = cart
+    .filter(item => item && item.size)
+    .map(item => `${item.id || item.product_id}-${item.size}`);
+
+  const todasSeleccionadas = todas.length > 0 && todas.every(key => selectedItems.includes(key));
+
+  const nuevaSeleccion = todasSeleccionadas ? [] : todas;
+  setSelectedItems(nuevaSeleccion);
+  localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
+};
+
+
 
   const isSelected = (productId, size) =>
-    selectedItems.includes(`${productId}-${size}`);
+  selectedItems.includes(`${productId}-${size || ''}`);
 
   const calcularSubtotalSeleccionados = () => {
     return cart.reduce((total, item) => {
@@ -372,17 +391,11 @@ useEffect(() => {
       const key = `${item.id || item.product_id}-${item.size}`;
       const actualizada = selectedItems.filter((k) => k !== key);
       setSelectedItems(actualizada);
-      localStorage.setItem("selected_items", JSON.stringify(actualizada));
+      localStorage.setItem(selectedKey, JSON.stringify(actualizada));
       refreshCart();
     } catch (error) {
       console.error("❌ Error al guardar para más tarde", error);
     }
-  };
-
-  const ToggleSeleccionarTodo = () => {
-    const todas = cart.map((item) => `${item.id || item.product_id}-${item.size}`);
-    setSelectedItems(todas);
-    localStorage.setItem("selected_items", JSON.stringify(todas));
   };
 
   return {
@@ -396,14 +409,12 @@ useEffect(() => {
     calcularSubtotalSeleccionados,
     compartirProducto,
     guardarParaMasTarde,
-    ToggleSeleccionarTodo,
     aumentarCantidad,
     disminuirCantidad,
     eliminarProducto,
     aumentarCantidadInvitado,
     disminuirCantidadInvitado,
     eliminarProductoInvitado,
-    cambiarTalla,
   };
 }
 

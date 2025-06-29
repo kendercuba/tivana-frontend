@@ -54,42 +54,45 @@ export default function ProductDetail() {
       localStorage.setItem('selected_items', JSON.stringify([...selected, newKey]));
     }
 
-    // 🧑‍💻 Modo Invitado (no hay sesión activa)
-    if (!user) {
-      const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
-      const existing = cart.find(p => p.id === item.id && p.size === item.size);
+   // 🧑‍💻 Modo Invitado (no hay sesión activa)
+if (!user) {
+  const cart = JSON.parse(localStorage.getItem('guest_cart') || '[]');
+  const existing = cart.find(p => p.id === item.id && p.size === item.size);
 
-      if (existing) {
-        existing.quantity += item.quantity;
-      } else {
-        cart.push({
-          id: product.id,
-          title: product.title,
-          price: product.price,
-          image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
-          quantity: item.quantity,
-          size: selectedSize
-        });
-      }
+  if (existing) {
+    existing.quantity += item.quantity;
+  } else {
+    cart.push({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      image: product.image || (Array.isArray(product.images) ? product.images[0] : ''),
+      quantity: item.quantity,
+      size: selectedSize,
+      selected: true, // ✅ MARCAR COMO SELECCIONADO AL AGREGAR
+    });
+  }
 
-      localStorage.setItem('guest_cart', JSON.stringify(cart));
-      await refreshCart();
-      setMessage('✅ Producto agregado al carrito como invitado');
-      return;
-    }
+  localStorage.setItem('guest_cart', JSON.stringify(cart));
+
+  // ✅ AGREGAR A SELECCIONADOS TAMBIÉN
+  const selectedKeys = JSON.parse(localStorage.getItem('selected_items') || '[]');
+  const key = `${product.id}-${selectedSize}`;
+  if (!selectedKeys.includes(key)) {
+    selectedKeys.push(key);
+    localStorage.setItem('selected_items', JSON.stringify(selectedKeys));
+  }
+
+  await refreshCart();
+  setMessage('✅ Producto agregado al carrito como invitado');
+  return;
+}
+
 
    // 👤 Usuario logueado (usamos cookie con credentials: 'include')
 try {
   // 🔍 Resuelve el ID real del producto
-  const resolver = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${product.product_id}`);
-  const resolverData = await resolver.json();
-
-  if (!resolver.ok || !resolverData.id) {
-    setMessage('❌ No se pudo resolver el producto');
-    return;
-  }
-
-  const realId = resolverData.id;
+  const realId = product.id; // ✅ Ya tienes el ID interno real
 
   const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
     method: 'POST',
@@ -105,9 +108,20 @@ try {
   const result = await res.json();
 
   if (res.ok && result.message) {
-    await refreshCart?.(); // si refreshCart está disponible
-    setMessage('✅ Producto agregado al carrito');
-  } else {
+  await refreshCart?.(); // si refreshCart está disponible
+
+  // ✅ Marcar el producto como seleccionado para el usuario logueado
+  const selectedKey = `selected_items_${user.id}`;
+  const selectedKeys = JSON.parse(localStorage.getItem(selectedKey) || '[]');
+  const newKey = `${product.id}-${selectedSize}`;
+  if (!selectedKeys.includes(newKey)) {
+    selectedKeys.push(newKey);
+    localStorage.setItem(selectedKey, JSON.stringify(selectedKeys));
+  }
+
+  setMessage('✅ Producto agregado al carrito');
+}
+ else {
     setMessage(`❌ ${result.message || 'No se pudo agregar al carrito'}`);
   }
 } catch (err) {

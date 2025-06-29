@@ -18,14 +18,12 @@ export default function Cart() {
     calcularSubtotalSeleccionados,
     compartirProducto,
     guardarParaMasTarde,
-    ToggleSeleccionarTodo,
     aumentarCantidad,
     disminuirCantidad,
     eliminarProducto,
     aumentarCantidadInvitado,
     disminuirCantidadInvitado,
     eliminarProductoInvitado,
-    cambiarTalla,
   } = useCart();
 
   useEffect(() => {
@@ -37,7 +35,8 @@ export default function Cart() {
 
   // ✅ Reemplazado: item.id || item.product_id → item.product_id
   const allSelected = cart.length > 0 && cart.every(item =>
-    isSelected(item.product_id, item.size)
+    isSelected(item.id || item.product_id, item.size)
+
   );
 
   console.log("🔍 Cart en Cart.jsx:", cart);
@@ -71,7 +70,7 @@ export default function Cart() {
                 <CartItem
                   key={`${item.product_id}-${item.size}-${index}`} // ✅ corregido
                   item={item}
-                  isSelected={isSelected(item.product_id, item.size)} // ✅ corregido
+                  isSelected={isSelected(item.id || item.product_id, item.size)} // ✅ corregido
                   onToggle={() =>
                     toggleItemSelection(item.product_id, item.size) // ✅ corregido
                   }
@@ -90,7 +89,7 @@ export default function Cart() {
                       : eliminarProductoInvitado(item.id, item.size)
                   }
                   onSave={guardarParaMasTarde}
-                  onSizeChange={cambiarTalla}
+            
                 />
               ))}
             </div>
@@ -105,7 +104,7 @@ export default function Cart() {
             <strong>
               {
                 cart.filter((item) =>
-                  isSelected(item.product_id, item.size) // ✅ corregido
+                  isSelected(item.id || item.product_id, item.size) // ✅ corregido
                 ).length
               }
             </strong>
