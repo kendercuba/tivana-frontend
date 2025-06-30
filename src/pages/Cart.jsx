@@ -68,11 +68,11 @@ export default function Cart() {
             <div className="space-y-6">
               {cart.map((item, index) => (
                 <CartItem
-                  key={`${item.product_id}-${item.size}-${index}`} // ✅ corregido
+                  key={`${item.id || item.product_id}-${item.size}`}
                   item={item}
                   isSelected={isSelected(item.id || item.product_id, item.size)} // ✅ corregido
                   onToggle={() =>
-                    toggleItemSelection(item.product_id, item.size) // ✅ corregido
+                    toggleItemSelection(item.id || item.product_id, item.size) // ✅ corregido
                   }
                   onQuantityChange={(action) =>
                     item.product_id

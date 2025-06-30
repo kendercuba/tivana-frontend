@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
 function useCart() {
+  const justUpdatedRef = useRef(false);
   const { user, cart, setCart, refreshCart } = useContext(UserContext);
   const [savedItems, setSavedItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
@@ -60,10 +61,6 @@ useEffect(() => {
         setCart(resolvedCart);
         // 🟢 Recuperar selección previa sin sobrescribirla
 
-const savedSelection = JSON.parse(localStorage.getItem(selectedKey) || "[]");
-setSelectedItems(savedSelection);
-
-
         } catch (err) {
         console.error("❌ Error cargando carrito logueado:", err);
         setError("Error al obtener el carrito");
@@ -119,21 +116,20 @@ setSelectedItems(savedSelection);
 useEffect(() => {
   if (cart.length === 0) return;
 
+  if (skipRestoreRef.current || justUpdatedRef.current) {
+    console.log("⏩ Restauración omitida (banderas activadas)");
+    skipRestoreRef.current = false;
+    justUpdatedRef.current = false;
+    return;
+  }
+
   const keysEnriched = cart
     .filter(item => item && item.size)
     .map(item => `${item.id || item.product_id}-${item.size}`);
 
   const savedSelection = JSON.parse(localStorage.getItem(selectedKey) || "[]");
-
-  // 🔒 Restaurar solo si selectedItems NO coincide con lo que hay en localStorage
-  setSelectedItems((prev) => {
-    const prevSet = new Set(prev);
-    const savedSet = new Set(savedSelection.filter(k => keysEnriched.includes(k)));
-
-    const iguales = prevSet.size === savedSet.size && [...prevSet].every(v => savedSet.has(v));
-    if (iguales) return prev; // no tocar si ya están iguales
-    return [...savedSet];
-  });
+  const valid = savedSelection.filter(k => keysEnriched.includes(k));
+  setSelectedItems(valid);
 }, [cart, selectedKey]);
 
 
@@ -156,7 +152,6 @@ useEffect(() => {
     fetchSavedItems();
   }, [user]);
 
-  // 🔄 Actualizar carrito logueado
   const actualizarCarrito = async () => {
   try {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/cart`, {
@@ -168,92 +163,54 @@ useEffect(() => {
       (Array.isArray(data) ? data : []).map(async (item) => {
         try {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/products/resolver-id/${item.product_id}`, {
-            credentials: 'include'
+            credentials: 'include',
           });
           const data = await res.json();
+
+          if (!data?.id || !item.size || !item.quantity) return null;
+
           return {
             ...item,
+            id: data.id,
             title: data.title,
             image: data.image,
+            price: data.price,
+            size: item.size || '',
+            quantity: item.quantity || 1,
             sizes: Array.isArray(data.sizes)
               ? data.sizes
               : typeof data.sizes === "string"
               ? JSON.parse(data.sizes || "[]")
               : [],
-            price: data.price,
-            id: data.id,
           };
-        } catch {
-          return item;
+        } catch (err) {
+          console.error("❌ Error enriqueciendo producto:", err);
+          return null;
         }
       })
     );
 
-    setCart(enrichedCart);
+    const validCart = enrichedCart.filter(Boolean);
 
-// ✅ Restaurar selección *después* de setCart con nuevas claves
-const keysEnriched = enrichedCart
-  .filter(item => item && item.size)
-  .map(item => `${item.id || item.product_id}-${item.size}`);
+    // 🛡️ Establecer primero las banderas para evitar que el siguiente useEffect borre la selección
+    skipRestoreRef.current = true;
+    justUpdatedRef.current = true;
 
-// 🟡 Restaurar desde localStorage SOLO si selectedItems está vacío
-const saved = JSON.parse(localStorage.getItem(selectedKey) || "[]");
-const valid = saved.filter(k => keysEnriched.includes(k));
-setSelectedItems(valid);
+    setCart(validCart); // ← Solo ahora se actualiza el carrito, después de activar las flags
 
-
+    // ⚙️ Refrescar carrito general si es necesario
+    await new Promise(resolve => setTimeout(resolve, 10));
     refreshCart();
 
-  } catch {
+  } catch (err) {
+    console.error("❌ Error actualizando carrito:", err);
     setCart([]);
-    console.error("❌ Error actualizando carrito");
   }
 };
 
-  // ➕ Funciones para logueado
-  const aumentarCantidad = async (productId, size) => {
-  skipRestoreRef.current = true;
-  setCart((prev) =>
-    prev.map((item) =>
-      item.product_id === productId && item.size === size
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    )
-  );
-
+const aumentarCantidad = async (productId, size) => {
   const key = `${productId}-${size}`;
-  setSelectedItems((prev) => {
-  const nuevaSeleccion = prev.includes(key) ? prev : [...prev, key];
-  localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion)); // guardamos ANTES
-  return nuevaSeleccion;
-});
 
-
-  try {
-    await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_id: productId, size, action: "increment" }),
-    });
-    await actualizarCarrito(); // usamos la versión que respeta `selectedItems`
-  } catch {
-    console.error("❌ Error al aumentar cantidad");
-  }
-};
-
-
-  const disminuirCantidad = async (productId, size) => {
-  setCart((prev) =>
-    prev.map((item) =>
-      item.product_id === productId && item.size === size && item.quantity > 1
-        ? { ...item, quantity: item.quantity - 1 }
-        : item
-    )
-  );
-
-  // ✅ Asegurar que el producto sigue seleccionado
-  const key = `${productId}-${size}`;
   setSelectedItems((prev) => {
     const nuevaSeleccion = prev.includes(key) ? prev : [...prev, key];
     localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
@@ -261,26 +218,78 @@ setSelectedItems(valid);
   });
 
   try {
-    await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ product_id: productId, size, action: "increment" }),
+    });
+
+    if (!res.ok) throw new Error("Error al actualizar cantidad");
+
+    // ✅ Actualización local sin parpadeo
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.product_id === productId && item.size === size
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
+  } catch (err) {
+    console.error("❌ Error al aumentar cantidad:", err);
+  }
+};
+
+
+
+const disminuirCantidad = async (productId, size) => {
+  const key = `${productId}-${size}`;
+
+  setSelectedItems((prev) => {
+    const nuevaSeleccion = prev.includes(key) ? prev : [...prev, key];
+    localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
+    return nuevaSeleccion;
+  });
+
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/update`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ product_id: productId, size, action: "decrement" }),
     });
-    await actualizarCarrito(); // ✅ esta versión respeta la selección
-  } catch {
-    console.error("❌ Error al disminuir cantidad");
+
+    if (!res.ok) throw new Error("Error al actualizar cantidad");
+
+    // ✅ Actualización local sin parpadeo
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.product_id === productId && item.size === size && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  } catch (err) {
+    console.error("❌ Error al disminuir cantidad:", err);
   }
 };
 
 
-  const eliminarProducto = async (productId, size) => {
+const eliminarProducto = async (productId, size) => {
+  try {
     await fetch(`${import.meta.env.VITE_API_URL}/cart/delete/${productId}/${size}`, {
       method: "DELETE",
       credentials: 'include',
     });
-    actualizarCarrito();
-  };
+
+    skipRestoreRef.current = true; // ✅ evita que se pierda la selección al recargar
+    await actualizarCarrito();
+  } catch {
+    console.error("❌ Error al eliminar producto del carrito");
+  }
+};
+
+
 
   // ➕➖ Funciones para invitados
   const guardarCarritoLocal = (carrito) => {
