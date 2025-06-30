@@ -276,19 +276,32 @@ const disminuirCantidad = async (productId, size) => {
 
 
 const eliminarProducto = async (productId, size) => {
+  const key = `${productId}-${size}`;
+
+  // 🛡️ Asegurar que se conserve la selección antes de eliminar
+  setSelectedItems((prev) => {
+    const nuevaSeleccion = prev.filter((k) => k !== key);
+    localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
+    return nuevaSeleccion;
+  });
+
   try {
     await fetch(`${import.meta.env.VITE_API_URL}/cart/delete/${productId}/${size}`, {
       method: "DELETE",
       credentials: 'include',
     });
 
-    skipRestoreRef.current = true; // ✅ evita que se pierda la selección al recargar
-    await actualizarCarrito();
-  } catch {
-    console.error("❌ Error al eliminar producto del carrito");
+    // ✅ Actualizar carrito local sin borrar la selección de otros productos
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) =>
+          !(item.product_id === productId && item.size === size)
+      )
+    );
+  } catch (err) {
+    console.error("❌ Error al eliminar producto del carrito", err);
   }
 };
-
 
 
   // ➕➖ Funciones para invitados
