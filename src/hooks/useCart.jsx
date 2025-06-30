@@ -10,6 +10,7 @@ function useCart() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const selectedKey = user ? `selected_items_${user.id}` : "selected_items";
+  const [seleccionRestaurada, setSeleccionRestaurada] = useState(false);
   const skipRestoreRef = useRef(false);
 
 
@@ -130,6 +131,7 @@ useEffect(() => {
   const savedSelection = JSON.parse(localStorage.getItem(selectedKey) || "[]");
   const valid = savedSelection.filter(k => keysEnriched.includes(k));
   setSelectedItems(valid);
+  setSeleccionRestaurada(true);
 }, [cart, selectedKey]);
 
 
@@ -437,6 +439,7 @@ const eliminarProducto = async (productId, size) => {
     aumentarCantidadInvitado,
     disminuirCantidadInvitado,
     eliminarProductoInvitado,
+    seleccionRestaurada,
   };
 }
 

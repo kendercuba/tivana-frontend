@@ -24,6 +24,7 @@ export default function Cart() {
     aumentarCantidadInvitado,
     disminuirCantidadInvitado,
     eliminarProductoInvitado,
+    seleccionRestaurada,
   } = useCart();
 
   useEffect(() => {
@@ -50,19 +51,22 @@ export default function Cart() {
           {/* Validacion condicional si esta vacio el carrito desaparece el botón "seleccionar todo" */}
           {cart.length === 0 ? (
             <p className="text-gray-500 mb-6">Tu carrito está vacío.</p>
-          ) : (
+                   ) : (
             <>
-              {/* ✅ Botón Seleccionar todo (si hay productos) */}
-              <div className="flex justify-between items-center mb-4">
-                <button
-                  onClick={toggleSeleccionarTodo}
-                  className="text-blue-600 hover:underline"
-                >
-                  {allSelected ? "Quitar selección" : "Seleccionar todo"}
-                </button>
-              </div>
+              {/* ✅ Botón Seleccionar todo (si hay productos y ya se restauró la selección) */}
+              {seleccionRestaurada && (
+                <div className="flex justify-between items-center mb-4">
+                  <button
+                    onClick={toggleSeleccionarTodo}
+                    className="text-blue-600 hover:underline"
+                  >
+                    {allSelected ? "Quitar selección" : "Seleccionar todo"}
+                  </button>
+                </div>
+              )}
             </>
           )}
+
 
           {cart.length > 0 && (
             <div className="space-y-6">
