@@ -92,14 +92,15 @@ if (!user) {
    // 👤 Usuario logueado (usamos cookie con credentials: 'include')
 try {
   // 🔍 Resuelve el ID real del producto
+  
   const realId = product.id; // ✅ Ya tienes el ID interno real
-
+  console.log("🧪 Agregando producto con ID:", realId);
   const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/add`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      product_id: realId, // ✅ este es el ID de PostgreSQL
+      id: realId, // ✅ este es el ID de PostgreSQL
       quantity,           // ✅ tu variable existente
       size: selectedSize, // ✅ tu variable existente
     }),
@@ -143,7 +144,7 @@ try {
 
         {/* 🖼️ Galería de imágenes */}
         <div className="space-y-2">
-          <img src={mainImage} alt={product.title} className="w-full rounded" />
+          <img src={mainImage || product.images?.[0]} alt={product.title} className="w-full rounded" />
           {images.length > 0 && (
             <div className="flex gap-2 mt-2">
               {images.slice(0, 5).map((img, i) => (

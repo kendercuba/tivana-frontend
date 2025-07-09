@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import useCart from "../hooks/useCart.jsx";
+import useCart from "../hooks/useCart.js";
 import Button from '../components/ui/Button';
 import CartItem from "../components/cart/CartItem";
 import Card from '../components/ui/Card';
+import SavedItemCard from "../components/cart/SavedItemCard";
+import useSavedItems from "../hooks/useSavedItems";
+
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -17,15 +20,21 @@ export default function Cart() {
     toggleSeleccionarTodo,
     calcularSubtotalSeleccionados,
     compartirProducto,
-    guardarParaMasTarde,
     aumentarCantidad,
     disminuirCantidad,
     eliminarProducto,
     aumentarCantidadInvitado,
     disminuirCantidadInvitado,
     eliminarProductoInvitado,
-    seleccionRestaurada,
+    seleccionRestaurada, 
   } = useCart();
+
+  const {
+    savedItems,
+    guardarParaMasTarde,
+    moverAlCarrito,
+    eliminarGuardado
+  } = useSavedItems();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -34,13 +43,11 @@ export default function Cart() {
   if (loading) return <div className="p-4">Cargando carrito...</div>;
   if (error) return <div className="p-4 text-red-500">{error}</div>;
 
-  // ✅ Reemplazado: item.id || item.product_id → item.product_id
+  // ✅ Reemplazado: item.id || item.product_id → item.id
   const allSelected = cart.length > 0 && cart.every(item =>
-    isSelected(item.id || item.product_id, item.size)
-
+    isSelected(item.id, item.size)
   );
 
-  console.log("🔍 Cart en Cart.jsx:", cart);
   return (
     <div className="bg-gray-100 py-10">
       <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6">
@@ -67,34 +74,46 @@ export default function Cart() {
             </>
           )}
 
-
           {cart.length > 0 && (
             <div className="space-y-6">
               {cart.map((item, index) => (
-                <CartItem
-                  key={`${item.id || item.product_id}-${item.size}`}
-                  item={item}
-                  isSelected={isSelected(item.id || item.product_id, item.size)} // ✅ corregido
-                  onToggle={() =>
-                    toggleItemSelection(item.id || item.product_id, item.size) // ✅ corregido
+              <CartItem
+                key={`${item.id}-${item.size}`}
+                item={item}
+                isSelected={isSelected(item.id, item.size)}
+                onToggle={() => toggleItemSelection(item.id, item.size)}
+                onQuantityChange={(action) =>
+                  item.isGuest
+                    ? action === "increase"
+                      ? aumentarCantidadInvitado(item.id, item.size)
+                      : disminuirCantidadInvitado(item.id, item.size)
+                    : action === "increase"
+                      ? aumentarCantidad(item.id, item.size)
+                      : disminuirCantidad(item.id, item.size)
+                }
+                onDelete={() => {
+                  const size = item.size;
+                  item.isGuest
+                    ? eliminarProductoInvitado(item.id, size)
+                    : eliminarProducto(item.id, size);
+                }}
+                onSave={(itemToSave) => {
+                  const esValido = typeof itemToSave.id === "number" && itemToSave.id > 0;
+                  if (!esValido) {
+                    console.warn("❌ ID inválido:", itemToSave);
+                    alert("Este producto no se puede guardar para más tarde porque no tiene un ID válido.");
+                    return;
                   }
-                  onQuantityChange={(action) =>
-                    item.product_id
-                      ? action === "increase"
-                        ? aumentarCantidad(item.product_id, item.size)
-                        : disminuirCantidad(item.product_id, item.size)
-                      : action === "increase"
-                        ? aumentarCantidadInvitado(item.id, item.size)
-                        : disminuirCantidadInvitado(item.id, item.size)
-                  }
-                  onDelete={() =>
-                    item.product_id
-                      ? eliminarProducto(item.product_id, item.size)
-                      : eliminarProductoInvitado(item.id, item.size)
-                  }
-                  onSave={guardarParaMasTarde}
-            
-                />
+
+                  // ✅ Primero guardar, luego eliminar del carrito
+                  guardarParaMasTarde(itemToSave).then(() => {
+                    itemToSave.isGuest
+                      ? eliminarProductoInvitado(itemToSave.id, itemToSave.size)
+                      : eliminarProducto(itemToSave.id, itemToSave.size);
+                  });
+                }}
+
+              />
               ))}
             </div>
           )}
@@ -108,7 +127,7 @@ export default function Cart() {
             <strong>
               {
                 cart.filter((item) =>
-                  isSelected(item.id || item.product_id, item.size) // ✅ corregido
+                  isSelected(item.id, item.size) // ✅ corregido
                 ).length
               }
             </strong>
@@ -124,7 +143,30 @@ export default function Cart() {
             Proceder al pago
           </Button>
         </Card>
+        </div> {/* ← cierre de <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6"> */}
+        
+      {/* 🕓 Guardado para más tarde */}
+      {savedItems.length > 0 && (
+  <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6 mt-12">
+    <Card className="w-full lg:w-4/5">
+      <h2 className="text-xl font-semibold mb-6">
+        Guardado para más tarde ({savedItems.length} {savedItems.length === 1 ? "producto" : "productos"})
+      </h2>
+      <div className="divide-y">
+        {savedItems.map((item) => (
+          <SavedItemCard
+  key={`${item.id}-${item.size}`}
+  item={item}
+  onMoveToCart={() => moverAlCarrito(item.product_id, item.size)}      // ✅
+  onDelete={() => eliminarGuardado(item.product_id, String(item.size))} // ✅
+/>
+
+        ))}
       </div>
-    </div>
+    </Card>
+  </div>
+)}
+
+    </div>  // ← cierre del div principal con clase bg-gray-100 py-10
   );
 }

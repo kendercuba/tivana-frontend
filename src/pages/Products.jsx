@@ -80,7 +80,7 @@ export default function Products() {
         {products.map((product, index) => (
           <Link
             key={index}
-            to={`/product/${product.product_id}`}
+            to={`/product/${product.id}`}
             className="border rounded-lg bg-white hover:shadow-lg transition overflow-hidden flex flex-col"
           >
             <div className="relative">

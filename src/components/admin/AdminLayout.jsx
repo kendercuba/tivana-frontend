@@ -12,6 +12,7 @@ export default function AdminLayout({ children }) {
           <Link to="/admin/orders" className="hover:underline">Ordenes</Link>
           <Link to="/admin/search-logs" className="hover:underline">Busquedas</Link>
           <Link to="/admin/products" className="hover:underline">Productos</Link>
+          <Link to="/admin/categories" className="hover:underline">Categories</Link>
         </nav>
       </aside>
 

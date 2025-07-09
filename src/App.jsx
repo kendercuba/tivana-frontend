@@ -10,6 +10,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminOrders from './pages/admin/Orders';
 import AdminSearchLogs from './pages/admin/SearchLogs';
 import AdminProducts from './pages/admin/Products';
+import AdminCategories from './pages/admin/AdminCategories';
 import AccountLayout from './pages/account/AccountLayout';
 import AccountSummary from './pages/account/Summary';
 import AccountOrders from './pages/account/Orders';
@@ -45,6 +46,7 @@ function App() {
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/search-logs" element={<AdminSearchLogs />} />
           <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
         </Routes>
       </main>
     </>

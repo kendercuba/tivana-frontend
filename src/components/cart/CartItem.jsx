@@ -8,7 +8,6 @@ export default function CartItem({
   onQuantityChange,
   onDelete,
   onSave,
-  onSizeChange,
 }) {
   const navigate = useNavigate();
 
@@ -29,7 +28,7 @@ export default function CartItem({
         {/* ✅ Imagen ocupando toda la altura del contenido */}
         <div className="flex-shrink-0">
           <img
-            src={item.image}
+            src={item.image || (item.images?.[0] || '')}
             alt={item.title}
             className="w-32 h-full object-contain cursor-pointer"
             onClick={() => navigate(`/product/${item.id}`)}
@@ -71,13 +70,59 @@ export default function CartItem({
           </div>
 
           {/* Acciones pegadas abajo */}
-          <div className="flex items-center gap-4 text-sm text-blue-600 mt-2">
-            <button onClick={onDelete} className="hover:underline">Eliminar</button>
-            <span>|</span>
-            <button onClick={() => onSave(item)} className="hover:underline">Guardar para más tarde</button>
-            <span>|</span>
-            <button className="hover:underline">Compartir</button>
-          </div>
+         <div className="flex items-center gap-4 text-sm text-blue-600 mt-2">
+{/* 🔘 Eliminar */}
+<button
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDelete(item); // ✅ Pasa el item completo
+  }}
+  className="hover:underline"
+>
+  Eliminar
+</button>
+
+<span>|</span>
+
+{/* 🔘 Guardar para más tarde */}
+<button
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("📦 Guardando para más tarde:", item); // ✅ Log de depuración
+
+    // Verificación con ID interno
+    if (!item.id) {
+      console.warn("❌ ID inválido:", item);
+      alert("Este producto no se puede guardar para más tarde porque no tiene un ID válido.");
+      return;
+    }
+
+    onSave?.(item); // ✅ Pasa el item completo
+  }}
+  className="hover:underline"
+>
+  Guardar para más tarde
+</button>
+
+
+<span>|</span>
+
+{/* 🔘 Compartir */}
+<button
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // compartirProducto(); // implementa si lo deseas
+  }}
+  className="hover:underline"
+>
+  Compartir
+</button>
+
+</div>
+
         </div>
 
         {/* Precio */}
