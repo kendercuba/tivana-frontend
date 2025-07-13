@@ -38,8 +38,8 @@ export default function FloatingCards() {
     {bloques.map((bloque, i) => (
       <div
         key={i}
-        className="rounded-full bg-white shadow-lg p-4 flex flex-col items-center overflow-hidden hover:shadow-xl transition-all
-                   w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96"
+        className="aspect-square w-72 sm:w-80 md:w-96 rounded-full bg-white shadow-lg p-4 flex flex-col items-center overflow-hidden hover:shadow-xl transition-all"
+
       >
         <div className="grid grid-cols-2 gap-x-6 gap-y-6 px-4 h-full place-content-center">
           {bloque.map((product) => (
@@ -48,11 +48,12 @@ export default function FloatingCards() {
   onClick={() => manejarClick(product.id)}
   className="flex justify-center items-center w-full h-full"
 >
-    <div className="relative w-full h-full flex items-center justify-center">
+   <div className="relative aspect-square w-full flex items-center justify-center">
+
     <img
       src={product.image || ''}
       alt={product.title || ''}
-      className="w-28 h-28 md:w-32 md:h-32 object-cover rounded-full"
+      className="w-full h-full object-cover rounded-full"
     />
     <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-green-600 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded shadow">
       ${product.price}

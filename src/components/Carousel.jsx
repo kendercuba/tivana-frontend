@@ -77,10 +77,11 @@ export default function Carrusel() {
 
   return (
         <div
-      className="relative w-full aspect-[3/1] overflow-hidden bg-gray-100"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+  className="relative w-full aspect-[3/1] overflow-hidden bg-gray-100 max-w-screen-2xl mx-auto"
+  onMouseEnter={() => setIsHovered(true)}
+  onMouseLeave={() => setIsHovered(false)}
+>
+
       <div
         ref={slideRef}
         className="flex transition-all duration-500 ease-in-out h-full w-full"
@@ -90,7 +91,8 @@ export default function Carrusel() {
             key={i}
             src={`/images/carousel/${img}`}
             alt={`Imagen ${i + 1}`}
-            className="min-w-full h-full object-cover flex-shrink-0"
+            className="w-full h-full object-cover flex-shrink-0"
+
           />
         ))}
       </div>

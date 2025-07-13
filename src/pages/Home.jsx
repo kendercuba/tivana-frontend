@@ -10,8 +10,8 @@ export default function Home() {
         <Carousel />
       </div>
 
-      {/* 🟡 FloatingCards que se sube visualmente */}
-      <div className="border-4 border-yellow-500 -mt-48 z-10 relative">
+       {/* 🟡 FloatingCards: solo visible en md+ */}
+      <div className="border-4 border-yellow-500 mt-[-5rem] z-10 relative hidden md:block">
         <FloatingCards />
       </div>
     </div>
