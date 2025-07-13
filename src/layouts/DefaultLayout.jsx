@@ -7,9 +7,9 @@ export default function DefaultLayout() {
   return (
     <>
       <Header />
-      <main className="pt-0 mt-0 border-4 border-red-500 overflow-x-hidden">
+      <main className="pt-0 mt-0 border-4 border-red-500 overflow-visible">
 
-        <div className="max-w-screen-2xl mx-auto px-4 border-4 border-blue-500">
+        <div className="max-w-screen-2xl mx-auto px-4 border-4 border-blue-500 min-h-[1px]">
 
           <Outlet />
         </div>
