@@ -33,27 +33,34 @@ export default function FloatingCards() {
 
    return (
       <div className="hidden md:block">
-  <div className="w-full max-w-screen-2xl mx-auto flex justify-center gap-6 px-4 flex-nowrap">
+  <div className="w-full max-w-screen-2xl mx-auto flex flex-wrap justify-center gap-6 px-4">
+
+
 
     {bloques.map((bloque, i) => (
       <div
         key={i}
-        className="aspect-square w-72 sm:w-80 md:w-96 rounded-full bg-white shadow-lg p-4 flex flex-col items-center overflow-hidden hover:shadow-xl transition-all"
+        //TARJETAS RECTANGULARES 
+         className="w-[340px] h-[480px] bg-white rounded-xl shadow-lg p-5 flex-shrink-0 flex flex-col items-center overflow-hidden hover:shadow-xl transition-all"
+
 
       >
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 px-4 h-full place-content-center">
+        <div className="grid grid-cols-2 gap-3 w-full h-full">
+
+
           {bloque.map((product) => (
   <button
   key={product.id}
   onClick={() => manejarClick(product.id)}
   className="flex justify-center items-center w-full h-full"
 >
-   <div className="relative aspect-square w-full flex items-center justify-center">
+   <div className="relative w-full h-[170px] flex items-center justify-center">
+
 
     <img
       src={product.image || ''}
       alt={product.title || ''}
-      className="w-full h-full object-cover rounded-full"
+      className="w-full h-full object-cover rounded-md"
     />
     <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-green-600 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded shadow">
       ${product.price}
