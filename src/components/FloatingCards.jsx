@@ -32,7 +32,8 @@ export default function FloatingCards() {
   };
 
    return (
-  <div className="flex justify-center gap-6 px-4 flex-wrap"> 
+  <div className="w-full max-w-screen-2xl mx-auto flex justify-center gap-6 px-4 flex-nowrap">
+
     {bloques.map((bloque, i) => (
       <div
         key={i}

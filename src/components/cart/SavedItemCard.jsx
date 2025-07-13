@@ -33,32 +33,38 @@ export default function SavedItemCard({ item, onMoveToCart, onDelete }) {
           <p className="text-sm text-gray-600 mt-1">Talla: {size}</p>
         </div>
       </div>
-      <div className="flex flex-col items-end gap-2">
-        <p className="text-red-600 font-semibold text-base">${price}</p>
-        
-        {/* ✅ Corrección: pasar argumentos al hacer clic */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onMoveToCart(product_id, size); // 👈 ahora sí recibe argumentos
-          }}
-          className="bg-yellow-400 text-black px-4 py-1 text-sm rounded hover:bg-yellow-500"
-        >
-          Agregar al carrito
-        </button>
-          
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete(product_id, size); // 👈 también aquí
-          }}
-          className="text-sm text-red-500 hover:underline"
-        >
-          Eliminar
-        </button>
-      </div>
+      <div className="flex flex-col justify-between items-end h-full min-h-[140px] pr-2">
+  {/* Precio arriba */}
+  <p className="text-red-600 font-semibold text-base">{`$${price}`}</p>
+
+  {/* Botones abajo */}
+  <div className="flex gap-3">
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onMoveToCart(product_id, size);
+      }}
+      className="bg-yellow-400 text-black px-4 py-1 text-sm rounded hover:bg-yellow-500"
+    >
+      Agregar al carrito
+    </button>
+
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDelete(product_id, size);
+      }}
+      className="text-sm text-red-500 hover:underline"
+    >
+      Eliminar
+    </button>
+  </div>
+</div>
+
+
+
     </div>
   );
 }

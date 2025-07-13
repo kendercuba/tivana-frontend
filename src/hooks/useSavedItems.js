@@ -76,6 +76,15 @@ function useSavedItems() {
         return;
       }
 
+      // ✅ Marcar el producto como seleccionado automáticamente
+const key = `${productId}-${size}`;
+const selectedKey = `selected_items_${user.id}`;
+const current = JSON.parse(localStorage.getItem(selectedKey) || "[]");
+if (!current.includes(key)) {
+  const nuevaSeleccion = [...current, key];
+  localStorage.setItem(selectedKey, JSON.stringify(nuevaSeleccion));
+}
+
       // 2. Eliminar de productos guardados
       await eliminarGuardado(productId, size);
 
