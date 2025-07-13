@@ -76,8 +76,7 @@ export default function Carrusel() {
   }, []);
 
   return (
-    <div className="hidden md:block">
-    <div
+        <div
       className="relative w-full aspect-[3/1] overflow-hidden bg-gray-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -108,7 +107,6 @@ export default function Carrusel() {
       >
         &#10095;
       </button>
-    </div>
-    </div>
+    </div>    
   );
 }

@@ -32,6 +32,7 @@ export default function FloatingCards() {
   };
 
    return (
+      <div className="hidden md:block">
   <div className="w-full max-w-screen-2xl mx-auto flex justify-center gap-6 px-4 flex-nowrap">
 
     {bloques.map((bloque, i) => (
@@ -64,6 +65,7 @@ export default function FloatingCards() {
         </div>
       </div>
     ))}
+  </div>
   </div>
 );
 
