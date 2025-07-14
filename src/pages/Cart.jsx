@@ -49,18 +49,21 @@ export default function Cart() {
   );
 
   return (
-    <div className="bg-gray-100 py-10">
-      <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6">
-        {/* 🧭 Columna izquierda: productos */}
-        <Card className="w-full lg:w-4/5">
+  <div className="bg-gray-100 py-10"> {/* 🟠 Contenedor raíz */}
+
+    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 px-6"> {/* 🌐 Grid principal */}
+
+      {/* 🔹 COLUMNA IZQUIERDA: productos + guardados */}
+      <div className="flex flex-col gap-10">
+
+        {/* 🛒 Productos del carrito */}
+        <Card className="w-full border border-blue-400">
           <h1 className="text-2xl font-bold mb-6">Carrito de compras</h1>
 
-          {/* Validacion condicional si esta vacio el carrito desaparece el botón "seleccionar todo" */}
           {cart.length === 0 ? (
             <p className="text-gray-500 mb-6">Tu carrito está vacío.</p>
-                   ) : (
+          ) : (
             <>
-              {/* ✅ Botón Seleccionar todo (si hay productos y ya se restauró la selección) */}
               {seleccionRestaurada && (
                 <div className="flex justify-between items-center mb-4">
                   <button
@@ -71,63 +74,79 @@ export default function Cart() {
                   </button>
                 </div>
               )}
+              <div className="space-y-6">
+                {cart.map((item) => (
+                  <CartItem
+                    key={`${item.id}-${item.size}`}
+                    item={item}
+                    isSelected={isSelected(item.id, item.size)}
+                    onToggle={() => toggleItemSelection(item.id, item.size)}
+                    onQuantityChange={(action) =>
+                      item.isGuest
+                        ? action === "increase"
+                          ? aumentarCantidadInvitado(item.id, item.size)
+                          : disminuirCantidadInvitado(item.id, item.size)
+                        : action === "increase"
+                          ? aumentarCantidad(item.id, item.size)
+                          : disminuirCantidad(item.id, item.size)
+                    }
+                    onDelete={() => {
+                      const size = item.size;
+                      item.isGuest
+                        ? eliminarProductoInvitado(item.id, size)
+                        : eliminarProducto(item.id, size);
+                    }}
+                    onSave={(itemToSave) => {
+                      const esValido = typeof itemToSave.id === "number" && itemToSave.id > 0;
+                      if (!esValido) {
+                        console.warn("❌ ID inválido:", itemToSave);
+                        alert("Este producto no se puede guardar para más tarde porque no tiene un ID válido.");
+                        return;
+                      }
+
+                      guardarParaMasTarde(itemToSave).then(() => {
+                        itemToSave.isGuest
+                          ? eliminarProductoInvitado(itemToSave.id, itemToSave.size)
+                          : eliminarProducto(itemToSave.id, itemToSave.size);
+                      });
+                    }}
+                  />
+                ))}
+              </div>
             </>
           )}
+        </Card>
 
-          {cart.length > 0 && (
-            <div className="space-y-6">
-              {cart.map((item, index) => (
-              <CartItem
-                key={`${item.id}-${item.size}`}
-                item={item}
-                isSelected={isSelected(item.id, item.size)}
-                onToggle={() => toggleItemSelection(item.id, item.size)}
-                onQuantityChange={(action) =>
-                  item.isGuest
-                    ? action === "increase"
-                      ? aumentarCantidadInvitado(item.id, item.size)
-                      : disminuirCantidadInvitado(item.id, item.size)
-                    : action === "increase"
-                      ? aumentarCantidad(item.id, item.size)
-                      : disminuirCantidad(item.id, item.size)
-                }
-                onDelete={() => {
-                  const size = item.size;
-                  item.isGuest
-                    ? eliminarProductoInvitado(item.id, size)
-                    : eliminarProducto(item.id, size);
-                }}
-                onSave={(itemToSave) => {
-                  const esValido = typeof itemToSave.id === "number" && itemToSave.id > 0;
-                  if (!esValido) {
-                    console.warn("❌ ID inválido:", itemToSave);
-                    alert("Este producto no se puede guardar para más tarde porque no tiene un ID válido.");
-                    return;
-                  }
-
-                  // ✅ Primero guardar, luego eliminar del carrito
-                  guardarParaMasTarde(itemToSave).then(() => {
-                    itemToSave.isGuest
-                      ? eliminarProductoInvitado(itemToSave.id, itemToSave.size)
-                      : eliminarProducto(itemToSave.id, itemToSave.size);
-                  });
-                }}
-
-              />
+        {/* 💾 Guardado para más tarde */}
+        {savedItems.length > 0 && (
+          <Card className="w-full border border-purple-400">
+            <h2 className="text-xl font-semibold mb-6">
+              Guardado para más tarde ({savedItems.length} {savedItems.length === 1 ? "producto" : "productos"})
+            </h2>
+            <div className="divide-y">
+              {savedItems.map((item) => (
+                <SavedItemCard
+                  key={`${item.id}-${item.size}`}
+                  item={item}
+                  onMoveToCart={() => moverAlCarrito(item.product_id, item.size)}
+                  onDelete={() => eliminarGuardado(item.product_id, String(item.size))}
+                />
               ))}
             </div>
-          )}
-        </Card> {/* cierre del contenedor de productos */}
+          </Card>
+        )}
+      </div>
 
-        {/* 🧾 Columna derecha: resumen */}
-        <Card className="w-full lg:w-1/5 h-fit">
+      {/* 🔸 COLUMNA DERECHA: Resumen */}
+      <div className="w-full h-fit sticky top-28 self-start">
+        <Card className="w-full border border-yellow-400">
           <h2 className="text-xl font-semibold mb-4">Resumen</h2>
           <p className="mb-2 text-sm">
             Productos seleccionados:{" "}
             <strong>
               {
                 cart.filter((item) =>
-                  isSelected(item.id, item.size) // ✅ corregido
+                  isSelected(item.id, item.size)
                 ).length
               }
             </strong>
@@ -143,30 +162,9 @@ export default function Cart() {
             Proceder al pago
           </Button>
         </Card>
-        </div> {/* ← cierre de <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6"> */}
-        
-      {/* 🕓 Guardado para más tarde */}
-      {savedItems.length > 0 && (
-  <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row gap-10 px-6 mt-12">
-    <Card className="w-full lg:w-4/5">
-      <h2 className="text-xl font-semibold mb-6">
-        Guardado para más tarde ({savedItems.length} {savedItems.length === 1 ? "producto" : "productos"})
-      </h2>
-      <div className="divide-y">
-        {savedItems.map((item) => (
-          <SavedItemCard
-  key={`${item.id}-${item.size}`}
-  item={item}
-  onMoveToCart={() => moverAlCarrito(item.product_id, item.size)}      // ✅
-  onDelete={() => eliminarGuardado(item.product_id, String(item.size))} // ✅
-/>
-
-        ))}
       </div>
-    </Card>
+    </div>
   </div>
-)}
+);
 
-    </div>  // ← cierre del div principal con clase bg-gray-100 py-10
-  );
 }
