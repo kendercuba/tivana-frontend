@@ -47,86 +47,86 @@ export default function Header() {
   if (loading || !cart) return null;
 
   return (
-    <header className="bg-black shadow-md sticky top-0 z-50 w-full  border-blue-500">
-   <div className="w-full px-4 py-2 grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] items-center gap-y-4 border-4 border-purple-500">
+  <header className="bg-black shadow-md sticky top-0 z-50 w-full border-blue-500">
+    <div className="w-full px-4 py-2 flex flex-col sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-y-4 border-4 border-purple-500">
+      
+      {/* 🔵 Fila superior móvil: Logo + Sesión + Carrito */}
+      <div className="flex justify-between items-center sm:hidden w-full mb-2">
+        <Link
+          to="/"
+          className="text-xl font-bold text-blue-600 px-4 py-2 rounded-full hover:bg-blue-800 hover:text-white transition duration-200"
+        >
+          Tivana
+        </Link>
 
-  {/* 🔵 Logo + Ubicación */}
-  <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-    <Link
-      to="/"
-      className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 px-4 py-2 rounded-full hover:bg-blue-800 hover:text-white transition duration-200"
-    >
-      Tivana
-    </Link>
-    <span className="text-base text-white hidden sm:inline-block">{ubicacion}</span>
-  </div>
-
-  {/* 🔎 Barra de búsqueda */}
-  <div className="hidden sm:flex justify-center">
-    <div className="w-full max-w-[600px] md:max-w-[800px] lg:max-w-[1100px] px-2">
-      <SearchBar />
-    </div>
-  </div>
-
-  {/* 🔴 Menú derecho */}
-  <div className="hidden sm:flex items-center gap-4 text-sm relative">
-    {/* 🌍 Idioma */}
-    <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full text-white hover:bg-blue-800 cursor-pointer transition">
-      <Globe className="h-4 w-4" /> ES
-    </div>
-
-    {/* 👤 Sesión */}
-    {user ? (
-      <UserDropdown user={user} handleLogout={handleLogout} menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
-    ) : (
-      <GuestDropdown menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
-    )}
-
-    {/* 🛒 Carrito */}
-    <div className="relative">
-      <Link to="/cart" className="flex items-center px-3 py-1 rounded-full hover:bg-blue-800 transition relative">
-        <ShoppingCart className="h-5 w-5 text-white" />
-        {!loading && totalItems > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-            {totalItems}
-          </span>
-        )}
-      </Link>
-    </div>
-  </div>
-
-
-        {/* 📱 Menú hamburguesa móvil */}
-        <div className="flex sm:hidden ml-auto">
-          <button
-            onClick={() => setMostrarMenuMovil((prev) => !prev)}
-            className="text-white px-3 py-1 rounded-full hover:bg-blue-800 transition"
-          >
-            ☰
-          </button>
-
-          {mostrarMenuMovil && (
-            <div className="absolute top-full right-4 mt-2 bg-white text-black border rounded shadow-lg z-50 w-[240px] p-4 space-y-2">
-              {!user ? (
-                <>
-                  <Link to="/login" className="block py-2 border-b hover:underline">Iniciar sesión</Link>
-                  <Link to="/register" className="block py-2 border-b hover:underline">Registrarse</Link>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold mb-2">Hola, {user.nombre?.toLowerCase()}</p>
-                  <Link to="/account/profile" className="block py-2 border-b hover:underline">Perfil</Link>
-                  <Link to="/account/pedidos" className="block py-2 border-b hover:underline">Pedidos</Link>
-                  <button onClick={handleLogout} className="block w-full text-left py-2 text-red-600 hover:underline">Cerrar sesión</button>
-                </>
-              )}
-              <Link to="/cart" className="block py-2 hover:underline">Carrito ({totalItems})</Link>
-            </div>
+        <div className="flex items-center gap-2">
+          {/* 👤 Sesión */}
+          {user ? (
+            <UserDropdown user={user} handleLogout={handleLogout} menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
+          ) : (
+            <GuestDropdown menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
           )}
+
+          {/* 🛒 Carrito */}
+          <Link to="/cart" className="relative px-2 py-1 hover:bg-blue-800 rounded-full transition">
+            <ShoppingCart className="h-5 w-5 text-white" />
+            {!loading && totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
+          </Link>
         </div>
       </div>
-    </header>
-  );
+
+      {/* 🔵 Logo + Ubicación (solo escritorio) */}
+      <div className="hidden sm:flex items-center gap-4 flex-wrap sm:flex-nowrap">
+        <Link
+          to="/"
+          className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600 px-4 py-2 rounded-full hover:bg-blue-800 hover:text-white transition duration-200"
+        >
+          Tivana
+        </Link>
+        <span className="text-base text-white">{ubicacion}</span>
+      </div>
+
+      {/* 🔎 Barra de búsqueda (móvil y escritorio) */}
+      <div className="w-full sm:flex sm:justify-center">
+        <div className="w-full max-w-[600px] md:max-w-[800px] lg:max-w-[1100px] px-2">
+          <SearchBar />
+        </div>
+      </div>
+
+      {/* 🔴 Menú derecho (solo escritorio) */}
+      <div className="hidden sm:flex items-center gap-4 text-sm relative">
+        {/* 🌍 Idioma */}
+        <div className="flex items-center gap-1 px-3 py-1 rounded-full text-white hover:bg-blue-800 cursor-pointer transition">
+          <Globe className="h-4 w-4" /> ES
+        </div>
+
+        {/* 👤 Sesión */}
+        {user ? (
+          <UserDropdown user={user} handleLogout={handleLogout} menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
+        ) : (
+          <GuestDropdown menuRef={menuRef} mostrarMenu={mostrarMenu} setMostrarMenu={setMostrarMenu} />
+        )}
+
+        {/* 🛒 Carrito */}
+        <div className="relative">
+          <Link to="/cart" className="flex items-center px-3 py-1 rounded-full hover:bg-blue-800 transition relative">
+            <ShoppingCart className="h-5 w-5 text-white" />
+            {!loading && totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
+          </Link>
+        </div>
+      </div>
+    </div>
+  </header>
+);
+
 }
 
 function GuestDropdown({ menuRef, mostrarMenu, setMostrarMenu }) {
