@@ -5,13 +5,16 @@ import { Outlet } from "react-router-dom";
 
 export default function DefaultLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-white"> {/* ✅ Contenedor raíz */}
+    <div className="min-h-screen flex flex-col bg-white border-4 border-amber-500"> {/* ✅ Contenedor raíz */}
       <Header />
+
       <main className="flex-grow pt-0 mt-0 border-4 border-red-500 overflow-visible">
-        <div className="max-w-screen-2xl mx-auto px-4 border-4 border-blue-500">
+        <div className="max-w-[1600px] mx-auto border-4 border-blue-500">
+
           <Outlet />
         </div>
       </main>
+
       <Footer />
     </div>
   );

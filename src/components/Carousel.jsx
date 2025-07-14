@@ -77,7 +77,7 @@ export default function Carrusel() {
 
   return (
         <div
-  className="relative w-full aspect-[3/1] overflow-hidden bg-gray-100 max-w-screen-2xl mx-auto"
+  className="relative w-full aspect-[3/1] overflow-hidden bg-gray-100  mx-auto"
   onMouseEnter={() => setIsHovered(true)}
   onMouseLeave={() => setIsHovered(false)}
 >
