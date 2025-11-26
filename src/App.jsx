@@ -14,6 +14,8 @@ import AdminOrders from './pages/admin/Orders';
 import AdminSearchLogs from './pages/admin/SearchLogs';
 import AdminProducts from './pages/admin/Products';
 import AdminCategories from './pages/admin/AdminCategories';
+import AdminPrepararProductos from "./components/admin/AdminPrepararProductos.jsx";
+import AdminLayout from './components/admin/AdminLayout.jsx';
 
 import AccountLayout from './pages/account/AccountLayout';
 import AccountSummary from './pages/account/Summary';
@@ -49,6 +51,15 @@ function App() {
       <Route path="/admin/search-logs" element={<AdminSearchLogs />} />
       <Route path="/admin/products" element={<AdminProducts />} />
       <Route path="/admin/categories" element={<AdminCategories />} />
+<Route
+  path="/admin/preparar-productos"
+  element={
+    <AdminLayout>
+      <AdminPrepararProductos />
+    </AdminLayout>
+  }
+/>
+
 
     </Routes>
   );
