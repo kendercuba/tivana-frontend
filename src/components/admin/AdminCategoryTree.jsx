@@ -420,7 +420,7 @@ const reloadData = async () => {
                       </div>
                     </div>
 
-                    {/* SUBSUBCATEGORIES */}
+                    {/* SUBSUBCATEGORIES **/}
                     {expandedSubcategories[sub.id] && (
                       <div className="ml-6 border-l pl-3 mt-1 space-y-1">
                         {sub.subsubcategories?.map((ss) => (
