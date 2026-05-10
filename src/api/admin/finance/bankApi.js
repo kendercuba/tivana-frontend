@@ -6,10 +6,11 @@ async function parseJsonResponse(response) {
   const ct = response.headers.get("content-type") || "";
   if (!ct.includes("application/json")) {
     await response.text();
+    const urlHint = response.url ? ` URL intentada: ${response.url}.` : "";
     throw new Error(
       response.status === 404
-        ? "Ruta de API no encontrada (404). Comprueba que el backend tenga /api/finance y que VITE_API_URL termine en /api, o deja VITE_API_URL vacío y usa el proxy de Vite."
-        : `Respuesta no JSON (${response.status}). ¿Backend encendido y URL correcta?`
+        ? `Ruta de API no encontrada (404).${urlHint} El backend debe exponer GET …/api/finance/bank-accounts (prueba …/api/finance/ping). Si el panel está en otro dominio, añade ese origen en CORS del servidor (variable CORS_ORIGINS). Si front y API comparten dominio con proxy /api, puedes construir con VITE_API_URL vacío.`
+        : `Respuesta no JSON (${response.status}).${urlHint} ¿Backend encendido y URL correcta?`
     );
   }
   return response.json();
