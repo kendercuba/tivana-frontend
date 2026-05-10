@@ -1,501 +1,720 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
-  PencilIcon,
-  TrashIcon,
-  PlusIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  MagnifyingGlassIcon,
+ChevronDownIcon,
+ChevronRightIcon,
+PencilIcon,
+TrashIcon,
+PlusIcon,
+MagnifyingGlassIcon
 } from "@heroicons/react/24/outline";
 
-export default function AdminCategoryTree() {
-  const API_URL = import.meta.env.VITE_API_URL;
 
-  const [categories, setCategories] = useState([]);
-  const [expandedCategories, setExpandedCategories] = useState({});
-  const [expandedSubcategories, setExpandedSubcategories] = useState({});
-  const [activeItem, setActiveItem] = useState({ type: null, id: null });
+export default function AdminCategoryTree(){
 
-  const [search, setSearch] = useState("");
+const API_URL = import.meta.env.VITE_API_URL;
 
-  const [modal, setModal] = useState({
-    open: false,
-    type: null,
-    id: null,
-    parentId: null,
-    title: "",
-    value: "",
-  });
+const [categories,setCategories] = useState([]);
+const [expandedCategories,setExpandedCategories] = useState({});
+const [expandedSubcategories,setExpandedSubcategories] = useState({});
+const [search,setSearch] = useState("");
+const [openCategories, setOpenCategories] = useState({});
+const [openSubcategories, setOpenSubcategories] = useState({});
+const [bulkType,setBulkType] = useState("category");
+const [bulkParentCategory,setBulkParentCategory] = useState("");
+const [bulkParentSubcategory,setBulkParentSubcategory] = useState("");
+const [bulkText,setBulkText] = useState("");
 
- // 🔄 Reload data
+const [modal,setModal] = useState({
+open:false,
+type:null,
+id:null,
+parentId:null,
+value:"",
+title:""
+});
+
+/* LOAD DATA */
+
 const reloadData = async () => {
-  const [catsRes, subsRes, subsubRes] = await Promise.all([
-    fetch(`${API_URL}/admin/categories/with-count`, { credentials: "include" }),
-    fetch(`${API_URL}/admin/subcategories/with-count`, { credentials: "include" }),
-    fetch(`${API_URL}/admin/subsubcategories/with-count`, { credentials: "include" }),
-  ]);
 
-  const cats = await catsRes.json();
-  const subs = await subsRes.json();
-  const subsubs = await subsubRes.json();
+  try {
 
-  // 🔥 ENSAMBLAR ESTRUCTURA JERÁRQUICA
-  cats.forEach(cat => {
-    // Subcategorías que pertenecen a la categoría
-    cat.subcategories = subs.filter(s => s.category_id === cat.id);
+    const res = await fetch(
+      `${API_URL}/admin/taxonomy-tree`,
+      { credentials: "include" }
+    );
 
-    // 🔥 Número de subcategorías dentro de la categoría
-    cat.total_items = Number(cat.total_items);
+    const data = await res.json();
 
-    cat.subcategories.forEach(sub => {
-      // Sub-subcategorías dentro de esta subcategoría
-      sub.subsubcategories = subsubs.filter(ss => ss.subcategory_id === sub.id);
+    setCategories(data);
 
-      // 🔥 Número de sub-subcategorías dentro de esta subcategoría
-      sub.total_items = Number(sub.total_items);
+  } catch (err) {
 
-      sub.subsubcategories.forEach(ss => {
-        // 🔥 Número de productos dentro de esta sub-subcategoría
-        ss.total_items = Number(ss.total_items);
-      });
-    });
-  });
+    console.error("Error cargando taxonomy tree:", err);
 
-  setCategories(cats);
+  }
+
+};
+
+useEffect(()=>{
+reloadData();
+},[]);
+
+/* TOGGLES */
+
+const toggleCategory = id=>{
+setExpandedCategories(prev=>({...prev,[id]:!prev[id]}));
+};
+
+const toggleSubcategory = id=>{
+setExpandedSubcategories(prev=>({...prev,[id]:!prev[id]}));
+};
+
+/* MODAL */
+
+const openModalRename = (type,id,name)=>{
+setModal({
+open:true,
+type,
+id,
+parentId:null,
+value:name,
+title:`Editar ${type}`
+});
+};
+
+const openModalAdd = (type,parentId)=>{
+setModal({
+open:true,
+type,
+id:null,
+parentId,
+value:"",
+title:`Nuevo ${type}`
+});
+};
+
+const closeModal = ()=>{
+setModal({
+open:false,
+type:null,
+id:null,
+parentId:null,
+value:"",
+title:""
+});
+};
+
+/* SAVE */
+
+const saveModal = async ()=>{
+
+if(!modal.value.trim()) return;
+
+const endpoints = {
+category:"admin/categories",
+subcategory:"admin/subcategories",
+subsubcategories:"admin/subsubcategories"
+};
+
+let body={};
+
+if(modal.id){
+
+body={name:modal.value};
+
+await fetch(`${API_URL}/${endpoints[modal.type]}/${modal.id}`,{
+method:"PUT",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body)
+});
+
+}else{
+
+if(modal.type==="category"){
+body={name:modal.value};
+}
+
+if(modal.type==="subcategory"){
+body={name:modal.value,category_id:modal.parentId};
+}
+
+if(modal.type==="subsubcategories"){
+body={name:modal.value,subcategory_id:modal.parentId};
+}
+
+await fetch(`${API_URL}/${endpoints[modal.type]}`,{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body)
+});
+
+}
+
+closeModal();
+reloadData();
+
+};
+
+/* DELETE */
+
+const handleDelete = async(type,id)=>{
+
+if(!confirm("Eliminar elemento?")) return;
+
+const endpoints={
+category:"admin/categories",
+subcategory:"admin/subcategories",
+subsubcategories:"admin/subsubcategories"
+};
+
+await fetch(`${API_URL}/${endpoints[type]}/${id}`,{
+method:"DELETE"
+});
+
+reloadData();
+
 };
 
 
-  useEffect(() => {
-    reloadData();
-  }, []);
+const handleSearch = (value) => {
 
-  // 🔽 Toggle category
-  const toggleCategory = async (categoryId) => {
-    const isOpen = expandedCategories[categoryId];
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [categoryId]: !isOpen,
-    }));
+setSearch(value);
 
-    if (!isOpen) {
-      const res = await fetch(`${API_URL}/admin/subcategories`);
-      const allSub = await res.json();
-
-      const updated = categories.map((cat) =>
-        cat.id === categoryId
-          ? {
-              ...cat,
-              subcategories: allSub.filter((s) => s.category_id === cat.id),
-            }
-          : cat
-      );
-
-      setCategories(updated);
-    }
-  };
-
-  // 🔽 Toggle subcategory
-  const toggleSubcategory = async (categoryId, subcategoryId) => {
-    const isOpen = expandedSubcategories[subcategoryId];
-
-    setExpandedSubcategories((prev) => ({
-      ...prev,
-      [subcategoryId]: !isOpen,
-    }));
-
-    if (!isOpen) {
-      const res = await fetch(`${API_URL}/admin/subsubcategories`);
-      const allSubSub = await res.json();
-
-      const updated = categories.map((cat) => {
-        if (cat.id !== categoryId) return cat;
-
-        return {
-          ...cat,
-          subcategories: cat.subcategories.map((sub) =>
-            sub.id === subcategoryId
-              ? {
-                  ...sub,
-                  subsubcategories: allSubSub.filter(
-                    (ss) => ss.subcategory_id === sub.id
-                  ),
-                }
-              : sub
-          ),
-        };
-      });
-
-      setCategories(updated);
-    }
-  };
-
-  // 🟦 MODALES
-  const openModalRename = (type, id, oldName) => {
-    setModal({
-      open: true,
-      type,
-      id,
-      parentId: null,
-      title: `Editar ${type}`,
-      value: oldName,
-    });
-  };
-
-  const openModalAdd = (type, parentId) => {
-    setModal({
-      open: true,
-      type,
-      id: null,
-      parentId,
-      title:
-        type === "subcategory"
-          ? "Nueva Subcategoría"
-          : "Nueva Sub-Subcategoría",
-      value: "",
-    });
-  };
-
-  const closeModal = () => {
-    setModal({
-      open: false,
-      type: null,
-      id: null,
-      parentId: null,
-      title: "",
-      value: "",
-    });
-  };
-
-  // 💾 SAVE MODAL
-  const saveModal = async () => {
-    if (!modal.value.trim()) return;
-
-    const endpoints = {
-      category: "admin/categories",
-      subcategory: "admin/subcategories",
-      subsubcategories: "admin/subsubcategories",
-    };
-
-    let body = {};
-
-    // EDIT
-    if (modal.id) {
-      body =
-        modal.type === "subsubcategories"
-          ? { subsub_name: modal.value }
-          : { name: modal.value };
-
-      await fetch(`${API_URL}/${endpoints[modal.type]}/${modal.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    }
-
-    // ADD
-    else {
-      if (modal.type === "category") {
-        body = { name: modal.value };
-      }
-
-      if (modal.type === "subcategory") {
-        body = {
-          name: modal.value,
-          category_id: modal.parentId,
-        };
-      }
-
-      if (modal.type === "subsubcategories") {
-  body = {
-    name: modal.value,
-    subcategory_id: modal.parentId,
-  };
+if(value.trim() === ""){
+setOpenCategories({});
+setOpenSubcategories({});
+return;
 }
 
+const searchLower = value.toLowerCase();
 
-      await fetch(`${API_URL}/${endpoints[modal.type]}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    }
+const newOpenCats = {};
+const newOpenSubs = {};
 
-    closeModal();
-    reloadData();
-  };
+categories.forEach(cat=>{
 
-  // 🗑 DELETE
-  const handleDelete = async (type, id) => {
-    if (!confirm("¿Seguro que deseas eliminar?")) return;
+// match categoría
+if(cat.name.toLowerCase().includes(searchLower)){
+newOpenCats[cat.id] = true;
+}
 
-    const endpoints = {
-      category: "admin/categories",
-      subcategory: "admin/subcategories",
-      subsubcategories: "admin/subsubcategories",
-    };
+cat.subcategories?.forEach(sub=>{
 
-    await fetch(`${API_URL}/${endpoints[type]}/${id}`, {
-      method: "DELETE",
-    });
+// match subcategoría
+if(sub.name.toLowerCase().includes(searchLower)){
+newOpenCats[cat.id] = true;
+newOpenSubs[sub.id] = true;
+}
 
-    reloadData();
-  };
+sub.subsubcategories?.forEach(ss=>{
 
-  // 🔼 MOVER
-  const handleMove = async (type, id, direction) => {
-    const endpoints = {
-      category: "admin/categories",
-      subcategory: "admin/subcategories",
-      subsubcategories: "admin/subsubcategories",
-    };
+// match subsubcategoría
+if(ss.name.toLowerCase().includes(searchLower)){
+newOpenCats[cat.id] = true;
+newOpenSubs[sub.id] = true;
+}
 
-    await fetch(`${API_URL}/${endpoints[type]}/${id}/move`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ direction }),
-    });
+});
 
-    reloadData();
-  };
+});
 
-  // 🔍 SEARCH
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(search.toLowerCase())
-  );
+});
 
-  return (
-    <div className="p-4">
+setOpenCategories(newOpenCats);
+setOpenSubcategories(newOpenSubs);
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-2">
-  <h1 className="text-xl font-bold">Categorías</h1>
+};
 
-  <div className="flex items-center gap-2">
-    <button
-      onClick={() =>
-        setModal({
-          open: true,
-          type: "category",
-          id: null,
-          parentId: null,
-          title: "Nueva Categoría",
-          value: "",
-        })
-      }
-      className="flex items-center gap-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-sm"
-    >
-      <PlusIcon className="h-4" /> Agregar Categoría
-    </button>
 
-    <button
-      onClick={async () => {
-        try {
-          console.log("👉 Ordenando categorías...");
+const filterTree = (cats, search) => {
 
-          const response = await fetch(`${API_URL}/admin/sort/all`, {
-            method: "POST",
-            credentials: "include",
-          });
+if(!search) return cats;
 
-          const data = await response.json();
-          console.log("Respuesta del backend:", data);
+const searchLower = search.toLowerCase();
 
-          setTimeout(() => {
-          reloadData();
-          alert("Categorías ordenadas A-Z correctamente");
-        }, 300);
+return cats.map(cat => {
 
-        } catch (error) {
-          console.error("❌ Error al ordenar desde el frontend:", error);
-        }
-      }}
-      className="flex items-center gap-1 bg-purple-600 text-white px-2 py-1 rounded hover:bg-purple-700 text-sm"
-    >
-      Ordenar A-Z
-    </button>
-  </div>
+const filteredSubs = cat.subcategories?.map(sub => {
+
+const filteredSubSubs = sub.subsubcategories?.filter(ss =>
+ss.name.toLowerCase().includes(searchLower)
+);
+
+const subMatch = sub.name.toLowerCase().includes(searchLower);
+
+if(subMatch || filteredSubSubs?.length){
+
+return {
+...sub,
+subsubcategories: filteredSubSubs
+};
+
+}
+
+return null;
+
+}).filter(Boolean);
+
+const catMatch = cat.name.toLowerCase().includes(searchLower);
+
+if(catMatch || filteredSubs?.length){
+
+return {
+...cat,
+subcategories: filteredSubs
+};
+
+}
+
+return null;
+
+}).filter(Boolean);
+
+};
+
+
+/* CREAR CATEGORIAS MASIVAMENTE  */
+
+const handleBulkCreate = async () => {
+
+if(!bulkText.trim()) return;
+
+const lines = bulkText
+.split("\n")
+.map(l => l.trim())
+.filter(Boolean);
+
+for(const name of lines){
+
+let body = {};
+
+if(bulkType === "category"){
+
+body = { name };
+
+await fetch(`${API_URL}/admin/categories`,{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body)
+});
+
+}
+
+if(bulkType === "subcategory"){
+
+body = {
+name,
+category_id: bulkParentCategory
+};
+
+await fetch(`${API_URL}/admin/subcategories`,{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body)
+});
+
+}
+
+if(bulkType === "subsubcategories"){
+
+body = {
+name,
+subcategory_id: bulkParentSubcategory
+};
+
+await fetch(`${API_URL}/admin/subsubcategories`,{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify(body)
+});
+
+}
+
+}
+
+setBulkText("");
+
+reloadData();
+
+};
+
+
+
+return(
+
+<div className="p-6">
+
+
+{/* BULK CREATOR */}
+
+<div className="border rounded p-4 mb-6 bg-gray-50">
+
+<div className="flex gap-3 mb-3">
+
+<select
+value={bulkType}
+onChange={e=>setBulkType(e.target.value)}
+className="border px-2 py-1 text-sm rounded"
+>
+<option value="category">Categoría</option>
+<option value="subcategory">Subcategoría</option>
+<option value="subsubcategories">Subsubcategoría</option>
+</select>
+
+{bulkType !== "category" && (
+
+<select
+value={bulkParentCategory}
+onChange={e=>setBulkParentCategory(e.target.value)}
+className="border px-2 py-1 text-sm rounded"
+>
+
+<option value="">Seleccionar categoría</option>
+
+{filterTree(categories, search).map(cat => (
+<option key={cat.id} value={cat.id}>
+{cat.name}
+</option>
+))}
+
+</select>
+
+)}
+
+{bulkType === "subsubcategories" && (
+
+<select
+value={bulkParentSubcategory}
+onChange={e=>setBulkParentSubcategory(e.target.value)}
+className="border px-2 py-1 text-sm rounded"
+>
+
+<option value="">Seleccionar subcategoría</option>
+
+{categories.flatMap(cat =>
+cat.subcategories.map(sub=>(
+<option key={sub.id} value={sub.id}>
+{sub.name}
+</option>
+))
+)}
+
+</select>
+
+)}
+
+</div>
+
+<textarea
+placeholder="Pegar lista (una por línea)"
+value={bulkText}
+onChange={e=>setBulkText(e.target.value)}
+className="border w-full h-28 p-2 text-sm rounded mb-3"
+/>
+
+<button
+onClick={handleBulkCreate}
+className="bg-gray-800 text-white px-4 py-1 text-sm rounded"
+>
+Crear masivamente
+</button>
+
 </div>
 
 
-      {/* SEARCH */}
-      <div className="relative mb-3">
-        <MagnifyingGlassIcon className="h-4 absolute left-3 top-2 text-gray-400" />
-        <input
-          type="text"
-          className="w-full border pl-8 pr-3 py-1.5 rounded text-sm"
-          placeholder="Buscar categoría..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+{/* SEARCH */}
 
-      {/* CATEGORY LIST */}
-      <div className="space-y-1">
-        {filteredCategories.map((cat) => (
-          <div key={cat.id} className="border rounded bg-white p-2 group">
-            <div className="flex items-center gap-2">
+<div className="relative mb-4">
 
-              <button
-                onClick={() => toggleCategory(cat.id)}
-                className="mr-2 text-gray-600 hover:text-gray-900"
-              >
-                {expandedCategories[cat.id] ? (
-                  <ChevronDownIcon className="h-4" />
-                ) : (
-                  <ChevronRightIcon className="h-4" />
-                )}
-              </button>
+<MagnifyingGlassIcon className="h-4 absolute left-3 top-2 text-gray-400"/>
 
-              <span className="font-semibold flex-1">
-              {cat.name} ({cat.total_items})    
-            </span>
+<input
+className="border w-full pl-8 py-1.5 text-sm rounded"
+placeholder="Buscar categoría..."
+value={search}
+onChange={e=>handleSearch(e.target.value)}
+/>
+
+</div>
 
 
-              <div className="opacity-0 group-hover:opacity-100 transition flex gap-2 text-xs">
-                <PencilIcon
-                  onClick={() =>
-                    openModalRename("category", cat.id, cat.name)
-                  }
-                  className="h-4 text-blue-600 cursor-pointer"
-                />
-                <TrashIcon
-                  onClick={() => handleDelete("category", cat.id)}
-                  className="h-4 text-red-600 cursor-pointer"
-                />
-                
-                <PlusIcon
-                  onClick={() => openModalAdd("subcategory", cat.id)}
-                  className="h-4 text-green-700 cursor-pointer"
-                />
-              </div>
-            </div>
+{/* TABLE */}
 
-            {/* SUBCATEGORIES */}
-            {expandedCategories[cat.id] && (
-              <div className="ml-6 border-l pl-3 mt-1 space-y-1">
-                {cat.subcategories?.map((sub) => (
-                  <div key={sub.id} className="flex flex-col group">
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => toggleSubcategory(cat.id, sub.id)}
-                        className="mr-2 text-gray-600 hover:text-gray-900"
-                      >
-                        {expandedSubcategories[sub.id] ? (
-                          <ChevronDownIcon className="h-4" />
-                        ) : (
-                          <ChevronRightIcon className="h-4" />
-                        )}
-                      </button>
+<table className="w-full text-sm border rounded">
 
-                      <span className="flex-1 text-sm text-gray-700">
-                        {sub.name} ({sub.total_items})                        
-                      </span>
+<thead className="bg-gray-200 text-gray-700 text-xs">
+
+<tr>
+
+<th className="px-2 py-1 text-left w-16">Tipo</th>
+
+<th className="px-2 py-1 text-left w-16">ID</th>
+
+<th className="px-2 py-1 text-left">
+
+<div className="flex items-center gap-2">
+
+<span>Categorías</span>
+
+<PlusIcon
+className="h-4 text-gray-500 cursor-pointer hover:text-gray-800"
+title="Agregar categoría"
+onClick={()=>openModalAdd("category",null)}
+/>
+
+</div>
+
+</th>
+
+<th className="px-2 py-1 text-left w-24">Items</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{filterTree(categories, search).map((cat,i)=>(
+<Fragment key={cat.id}>
+
+<tr
+key={cat.id}
+onClick={()=>toggleCategory(cat.id)}
+className={`border-t cursor-pointer hover:bg-gray-100 ${i%2===0?"bg-white":"bg-gray-50"}`}
+>
+
+<td className="px-2 py-1 text-xs text-gray-600 font-medium w-[160px] flex items-center gap-1">
+Categoría
+
+<button
+onClick={()=>toggleCategory(cat.id)}
+className="w-4 flex justify-center"
+>
+
+{expandedCategories[cat.id]
+? <ChevronDownIcon className="h-4 w-4"/>
+: <ChevronRightIcon className="h-4 w-4"/>}
+
+</button>
+
+</td>
+
+<td className="p-2">{cat.id}</td>
+
+<td className="px-2 py-1 font-semibold flex items-center gap-2">
+
+<span>📦</span>
+
+<span className="flex items-center gap-2">
+
+{cat.name} 
+<span className="text-gray-500 text-xs">
+({cat.subcategories?.length || 0})
+</span>
+
+<PencilIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+openModalRename("category",cat.id,cat.name)
+}}
+/>
+
+<TrashIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+handleDelete("category",cat.id)
+}}
+/>
+
+<PlusIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+openModalAdd("subcategory",cat.id)
+}}
+/>
+
+</span>
+
+</td>
+
+<td className="p-2">{cat.total_items}</td>
+
+</tr>
+
+{(expandedCategories[cat.id] || openCategories[cat.id]) && cat.subcategories?.map((sub,j)=>(
+<>
+
+<tr
+key={sub.id}
+onClick={()=>toggleSubcategory(sub.id)}
+className={`border-t cursor-pointer hover:bg-gray-200 ${j%2===0?"bg-gray-50":"bg-gray-100"}`}
+>
+
+<td className="px-2 py-1 text-xs text-gray-600 font-medium w-[160px] flex items-center gap-1">
+Subcategoría
 
 
-                      <div className="opacity-0 group-hover:opacity-100 transition flex gap-2 text-xs">
-                        <PencilIcon
-                          onClick={() =>
-                            openModalRename(
-                              "subcategory",
-                              sub.id,
-                              sub.name
-                            )
-                          }
-                          className="h-4 text-blue-600 cursor-pointer"
-                        />
-                        <TrashIcon
-                          onClick={() =>
-                            handleDelete("subcategory", sub.id)
-                          }
-                          className="h-4 text-red-600 cursor-pointer"
-                        />
-                        
-                        <PlusIcon
-                          onClick={() =>
-                            openModalAdd("subsubcategories", sub.id)
-                          }
-                          className="h-4 text-green-700 cursor-pointer"
-                        />
-                      </div>
-                    </div>
+<button onClick={()=>toggleSubcategory(sub.id)}>
 
-                    {/* SUBSUBCATEGORIES **/}
-                    {expandedSubcategories[sub.id] && (
-                      <div className="ml-6 border-l pl-3 mt-1 space-y-1">
-                        {sub.subsubcategories?.map((ss) => (
-                          <div
-                            key={ss.id}
-                            className="flex items-center justify-between group"
-                          >
-                            <span className="text-xs text-gray-600">
-                                {ss.subsub_name} ({ss.total_items})                                
-                              </span>
+{expandedSubcategories[sub.id]
+? <ChevronDownIcon className="h-4"/>
+: <ChevronRightIcon className="h-4"/>}
 
+</button>
 
-                            <div className="opacity-0 group-hover:opacity-100 transition flex gap-2 text-xs">
-                              <PencilIcon
-                                onClick={() =>
-                                  openModalRename(
-                                    "subsubcategories",
-                                    ss.id,
-                                    ss.subsub_name
-                                  )
-                                }
-                                className="h-3 text-purple-600 cursor-pointer"
-                              />
-                              <TrashIcon
-                                onClick={() =>
-                                  handleDelete("subsubcategories", ss.id)
-                                }
-                                className="h-3 text-red-600 cursor-pointer"
-                              />
-                              
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+</td>
 
-      {/* MODAL */}
-      {modal.open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-80 p-4 rounded-lg shadow-lg">
-            <h2 className="text-lg font-semibold mb-3">{modal.title}</h2>
+<td className="p-2">{sub.id}</td>
 
-            <input
-              type="text"
-              className="w-full border px-3 py-2 rounded text-sm mb-4"
-              value={modal.value}
-              onChange={(e) =>
-                setModal((m) => ({ ...m, value: e.target.value }))
-              }
-            />
+<td className="px-2 py-1 flex items-center gap-2 pl-6">
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={closeModal}
-                className="px-3 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={saveModal}
-                className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+<span className="text-gray-400">├─</span>
+
+<span>📁</span>
+{sub.name} 
+<span className="text-gray-500 text-xs">
+({sub.subsubcategories?.length || 0})
+</span>
+
+<PencilIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+openModalRename("subcategory",sub.id,sub.name)
+}}
+/>
+
+<TrashIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+handleDelete("subcategory",sub.id)
+}}
+/>
+
+<PlusIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+openModalAdd("subsubcategories",sub.id)
+}}
+/>
+
+</td>
+
+<td className="p-2">{sub.total_items}</td>
+
+</tr>
+
+{(expandedSubcategories[sub.id] || openSubcategories[sub.id]) && sub.subsubcategories?.map((ss,k)=>(
+
+<tr
+key={ss.id}
+className={`border-t ${k%2===0?"bg-gray-100":"bg-gray-200"}`}
+>
+
+<td className="px-2 py-1 text-xs text-gray-600 font-medium w-[160px] flex items-center gap-1">
+Sub-sub
+
+</td>
+
+<td className="p-2">{ss.id}</td>
+
+<td className="px-2 py-1 flex items-center gap-2 pl-12 text-gray-700">
+
+<span className="text-gray-400">├─</span>
+
+<span>📄</span>
+
+<span className="flex items-center gap-2">
+
+{ss.name} 
+<span className="text-gray-500 text-xs">
+({ss.total_items || 0})
+</span>
+
+<PencilIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+openModalRename("subsubcategories",ss.id,ss.name)
+}}
+/>
+
+<TrashIcon
+className="h-3.5 text-gray-500 cursor-pointer"
+onClick={(e)=>{
+e.stopPropagation()
+handleDelete("subsubcategories",ss.id)
+}}
+/>
+
+</span>
+</td>
+
+<td className="p-2">{ss.total_items}</td>
+
+</tr>
+))}
+
+</>
+))}
+
+</Fragment>
+))}
+
+</tbody>
+
+</table>
+
+{/* MODAL */}
+
+{modal.open &&(
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+
+<div className="bg-white p-5 rounded w-80">
+
+<h2 className="font-semibold mb-3">{modal.title}</h2>
+
+<input
+className="border w-full px-2 py-1 text-sm mb-4"
+value={modal.value}
+onChange={e=>setModal(m=>({...m,value:e.target.value}))}
+/>
+
+<div className="flex justify-end gap-2">
+
+<button
+onClick={closeModal}
+className="px-3 py-1 bg-gray-200 rounded text-sm"
+
+>
+
+Cancelar </button>
+
+<button
+onClick={saveModal}
+className="px-3 py-1 bg-gray-800 text-white rounded text-sm"
+
+>
+
+Guardar </button>
+
+</div>
+
+</div>
+
+</div>
+
+)}
+
+</div>
+
+);
+
 }

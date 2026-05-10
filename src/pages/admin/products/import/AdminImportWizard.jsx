@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import StepReview from "./StepReview";
+import StepNormalize from "./StepNormalize";
+
+
 
 export default function AdminImportWizard() {
   const [step, setStep] = useState(1);
@@ -13,19 +17,22 @@ export default function AdminImportWizard() {
   const [cancelRequested, setCancelRequested] = useState(false);
 
   const [history, setHistory] = useState([]);
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
   const [reloadHistoryFn, setReloadHistoryFn] = useState(null);
 
+  
   // 🔥 NUEVO: Para poder cancelar el stream real
   const readerRef = useRef(null);
 
   const tabs = [
     { id: 1, name: "Traducir" },
-    { id: 2, name: "Categorías" },
+    { id: 2, name: "Normalizar" },
     { id: 3, name: "Revisar" },
     { id: 4, name: "Insertar" },
   ];
 
-  /* ============================================================
+    /* ============================================================
      🗂  Cargar historial
   ============================================================ */
   const loadHistory = async () => {
@@ -44,55 +51,57 @@ export default function AdminImportWizard() {
     setReloadHistoryFn(() => loadHistory);
   }, []);
 
-  /* ============================================================
-     📤 Subida de archivo + creación de batch
-  ============================================================ */
-  const handleUploadAndBatch = async (file, json) => {
-    const uploadRes = await fetch(
-      `${import.meta.env.VITE_API_URL}/import/upload`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          products: json,
-        }),
-      }
-    );
+  const sortedHistory = [...history].sort((a, b) => {
+  return new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`);
+});
 
-    const uploadData = await uploadRes.json();
+const totalPages = Math.ceil(sortedHistory.length / ITEMS_PER_PAGE);
 
-    if (!uploadData.success) {
-      alert("❌ Error al subir archivo");
-      return;
+const paginatedHistory = sortedHistory.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+
+
+/* ============================================================
+   📤 Subida de archivo (SIN crear batch todavía)
+============================================================ */
+const handleUploadAndBatch = async (file, json) => {
+  // 1. Subir el archivo RAW al backend
+  const uploadRes = await fetch(
+    `${import.meta.env.VITE_API_URL}/import/upload`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        products: json,
+      }),
     }
+  );
 
-    const batchRes = await fetch(
-      `${import.meta.env.VITE_API_URL}/import/create-batch`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: uploadData.filename,
-          temp_path: uploadData.temp_path,
-          total_products: uploadData.total_products,
-        }),
-      }
-    );
+  const uploadData = await uploadRes.json();
 
-    const batchData = await batchRes.json();
+  if (!uploadData.success) {
+    alert("❌ Error al subir archivo");
+    return;
+  }
 
-    if (!batchData.success) {
-      alert("❌ Error creando batch en base de datos");
-      return;
-    }
+  // 🚫 YA NO CREAMOS BATCH AQUÍ
+  // SOLO guardamos info del archivo subido
 
-    setBatchId(batchData.batch_id);
-    localStorage.setItem("import_batch_id", batchData.batch_id);
-    setUploadedFilename(file.name);
+  setUploadedFilename(file.name);
+  setUploadedSize(file.size);
 
-    if (reloadHistoryFn) reloadHistoryFn();
-  };
+  // Eliminamos cualquier batch anterior
+  setBatchId(null);
+  localStorage.removeItem("import_batch_id");
+
+  // Historial solo muestra TRADUCIDOS,
+  // así que recargarlo no da problemas
+  if (reloadHistoryFn) reloadHistoryFn();
+};
+
 
   return (
     <div className="w-full">
@@ -116,11 +125,11 @@ export default function AdminImportWizard() {
       </div>
 
       {/* ============================================================
-         🟦 PASO 2 — TRADUCIR
+         🟦 PASO 1 — TRADUCIR
       ============================================================ */}
       {step === 1 && (
         <div className="p-6 bg-white rounded shadow-md">
-          <h2 className="text-xl font-bold mb-6">Paso 2 — Traducir productos</h2>
+          <h2 className="text-2xl font-bold mb-6"> 1 - Traducir JSON</h2>
 
           <div className="flex items-center gap-4 mb-6">
             {/* ------------------ SUBIR ARCHIVO ------------------ */}
@@ -194,23 +203,27 @@ export default function AdminImportWizard() {
 
             {/* ------------------ BOTÓN TRADUCIR ------------------ */}
             <button
-              disabled={!batchId || translating}
+              disabled={translating || !uploadedFilename}
               className={`px-4 py-2 rounded text-white ${
                 translating ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
               }`}
-              onClick={async () => {
-                setTranslating(true);
-                setCancelRequested(false);
-                setProgressPercent(0);
+                      onClick={async () => {
+            setTranslating(true);
+            setCancelRequested(false);
+            setProgressPercent(0);
 
-                const res = await fetch(
-                  `${import.meta.env.VITE_API_URL}/import/translate`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ batch_id: batchId }),
-                  }
-                );
+            const res = await fetch(
+              `${import.meta.env.VITE_API_URL}/import/translate`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  // ahora enviamos filename, NO batch_id
+                  filename: uploadedFilename  
+                }),
+              }
+            );
+
 
                 const reader = res.body.getReader();
                 readerRef.current = reader;
@@ -234,18 +247,25 @@ export default function AdminImportWizard() {
                     const messages = text.trim().split("\n");
 
                     messages.forEach((msg) => {
-                      try {
-                        const json = JSON.parse(msg);
+  try {
+    const json = JSON.parse(msg);
 
-                        if (json.progress) {
-                          setProgressPercent(json.progress);
-                        }
+    if (json.progress) {
+      setProgressPercent(json.progress);
+    }
 
-                        if (json.cancelled) {
-                          setCancelRequested(true);
-                        }
-                      } catch {}
-                    });
+    // capturar batch_id enviado por backend ANTES de terminar
+    if (json.batch_id) {
+      setBatchId(json.batch_id);
+      localStorage.setItem("import_batch_id", json.batch_id);
+    }
+
+    if (json.cancelled) {
+      setCancelRequested(true);
+    }
+  } catch {}
+});
+
                   }
                 }
 
@@ -268,10 +288,14 @@ export default function AdminImportWizard() {
                     setCancelRequested(true);
 
                     await fetch(`${import.meta.env.VITE_API_URL}/import/cancel`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ batch_id: batchId }),  // ← CORREGIDO
-                    });
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      batch_id: batchId, 
+                      filename: uploadedFilename  // NECESARIO si batch aún no existe
+                    }),
+                  });
+
 
                     try {
                       readerRef.current?.cancel();
@@ -324,14 +348,12 @@ export default function AdminImportWizard() {
                     </th>
                     <th className="px-4 py-2 border-b border-r text-left">
                       Estado
-                    </th>
-                    <th className="px-4 py-2 border-b text-left">Descargar</th>
+                    </th>                   
                   </tr>
                 </thead>
 
                 <tbody>
-                  {Array.isArray(history) &&
-                    history.map((item) => (
+                  {paginatedHistory.map((item) => (
                       <tr
                         key={item.id}
                         className="hover:bg-gray-50 transition"
@@ -362,64 +384,47 @@ export default function AdminImportWizard() {
                             {item.status}
                           </span>
                         </td>
-
-                        <td className="px-4 py-2 border-b">
-                          {item.status === "translated" ? (
-                            <a
-                              href={`${import.meta.env.VITE_API_URL}/import/download/${item.id}`}
-                              className="text-blue-600 hover:underline"
-                              download
-                            >
-                              Descargar
-                            </a>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                      </tr>
+                        </tr>
                     ))}
                 </tbody>
               </table>
+             {totalPages > 1 && (
+  <div className="flex justify-center gap-2 mt-4">
+    {Array.from({ length: totalPages }).map((_, i) => (
+      <button
+        key={i}
+        onClick={() => setCurrentPage(i + 1)}
+        className={`px-3 py-1 rounded border text-sm ${
+          currentPage === i + 1
+            ? "bg-blue-600 text-white"
+            : "bg-white hover:bg-gray-100"
+        }`}
+      >
+        {i + 1}
+      </button>
+    ))}
+  </div>
+)}
+ 
             </div>
           </div>
 
-          {/* CONTINUAR */}
-          {!translating && (
-            <button
-              onClick={() => setStep(2)}
-              className="mt-6 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Continuar al Paso 3
-            </button>
-          )}
-        </div>
+          </div>
       )}
+
+      {/* Paso 2 */}
+      {step === 2 && <StepNormalize />}
+
 
       {/* Paso 3 */}
-      {step === 2 && (
-        <div className="p-6 bg-white rounded shadow-md">
-          <h2 className="text-xl font-bold mb-4">
-            Paso 3 — Clasificar productos
-          </h2>
-          <p>Aquí implementaremos el mapeo automático de categorías.</p>
-        </div>
-      )}
+      {step === 3 && <StepReview />}
 
+     
       {/* Paso 4 */}
-      {step === 3 && (
-        <div className="p-6 bg-white rounded shadow-md">
-          <h2 className="text-xl font-bold mb-4">
-            Paso 4 — Revisar productos
-          </h2>
-          <p>Mostraremos la tabla con los productos ya procesados.</p>
-        </div>
-      )}
-
-      {/* Paso 5 */}
       {step === 4 && (
         <div className="p-6 bg-white rounded shadow-md">
           <h2 className="text-xl font-bold mb-4">
-            Paso 5 — Insertar productos
+            Paso 4 — Insertar productos
           </h2>
           <p>Aquí va el botón final para cargar los productos a PostgreSQL.</p>
         </div>
